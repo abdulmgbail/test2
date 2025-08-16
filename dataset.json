@@ -1,1 +1,1453 @@
+[
+  {
+    "question": "Show me all active access cards for parking",
+    "context": "CREATE TABLE `assigned_access_cards` (`id` bigint UNSIGNED NOT NULL, `card_id` varchar(255), `status` int DEFAULT '1' COMMENT '1=ACTIVE, 2=INACTIVE, 3=LOST', `access_card_type_id` bigint UNSIGNED DEFAULT NULL, `created_at` timestamp NULL DEFAULT NULL); CREATE TABLE `access_card_types` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL, `amount` decimal(10,2) DEFAULT NULL);",
+    "answer": "SELECT ac.*, act.name as card_type FROM assigned_access_cards ac JOIN access_card_types act ON ac.access_card_type_id = act.id WHERE ac.status = 1 AND act.name LIKE '%Parking%'",
+    "explanation": "This query finds parking spaces located in basement floors by joining unit_parkings with floors table and using LIKE to match floor names containing 'Basement'."
+  },
+  {
+    "question": "Calculate total bill overdue amounts",
+    "context": "CREATE TABLE `bills` (`id` bigint UNSIGNED NOT NULL, `overdue` decimal(10,2) NOT NULL DEFAULT '0.00', `is_overdue` tinyint(1) NOT NULL DEFAULT '0');",
+    "answer": "SELECT SUM(overdue) as total_overdue FROM bills WHERE is_overdue = 1",
+    "explanation": "This query calculates the total overdue amount from all bills by summing the overdue field for bills marked as overdue (is_overdue = 1)."
+  },
+  {
+    "question": "List all access card types with their amounts",
+    "context": "CREATE TABLE `access_card_types` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL, `amount` decimal(10,2) DEFAULT NULL);",
+    "answer": "SELECT name, amount FROM access_card_types ORDER BY amount",
+    "explanation": "This query lists all access card types with their associated costs, ordered by amount to show pricing structure from lowest to highest."
+  },
+  {
+    "question": "Show job quotations sent to customers",
+    "context": "CREATE TABLE `job_quotation` (`id` bigint UNSIGNED NOT NULL, `quote_no` varchar(255) NOT NULL, `status` int NOT NULL DEFAULT '1' COMMENT '3=Quote Sent', `is_mail_sent` tinyint(1) NOT NULL DEFAULT '0');",
+    "answer": "SELECT * FROM job_quotation WHERE status = 3 AND is_mail_sent = 1",
+    "explanation": "This query finds job quotations that have been sent to customers by filtering for status = 3 (Quote Sent) and is_mail_sent = 1, confirming email delivery."
+  },
+  {
+    "question": "Find units with AC deposit received",
+    "context": "CREATE TABLE `deposits` (`id` bigint UNSIGNED NOT NULL, `contract_id` bigint UNSIGNED NOT NULL, `type` int NOT NULL COMMENT '1=AC_DEPOSIT'); CREATE TABLE `contracts` (`id` bigint UNSIGNED NOT NULL, `unit_id` bigint UNSIGNED NOT NULL);",
+    "answer": "SELECT DISTINCT c.unit_id FROM deposits d JOIN contracts c ON d.contract_id = c.id WHERE d.type = 1",
+    "explanation": "This query finds units that have received AC deposits by joining deposits with contracts, filtering for AC deposit type (1), and using DISTINCT to avoid duplicate units."
+  },
+  {
+    "question": "Get violation payment methods distribution",
+    "context": "CREATE TABLE `violation_payments` (`id` bigint UNSIGNED NOT NULL, `transaction_mode` varchar(255) NOT NULL, `amount` double NOT NULL);",
+    "answer": "SELECT transaction_mode, COUNT(*) as count, SUM(amount) as total FROM violation_payments GROUP BY transaction_mode",
+    "explanation": "This query analyzes violation payment methods by grouping payments by transaction mode and calculating both count and total amount for each payment method."
+  },
+  {
+    "question": "List all moving items scheduled this month",
+    "context": "CREATE TABLE `moving_items` (`id` bigint UNSIGNED NOT NULL, `scheduled_date` date NOT NULL, `status` int NOT NULL);",
+    "answer": "SELECT * FROM moving_items WHERE MONTH(scheduled_date) = MONTH(CURDATE()) AND YEAR(scheduled_date) = YEAR(CURDATE())",
+    "explanation": "This query retrieves moving items scheduled for the current month by filtering scheduled_date using MONTH() and YEAR() functions to match the current month."
+  },
+  {
+    "question": "Show contracts with unpaid registration fees",
+    "context": "CREATE TABLE `contracts` (`id` bigint UNSIGNED NOT NULL, `contract_no` varchar(255) NOT NULL, `is_registration_fee_paid` tinyint(1) NOT NULL DEFAULT '0');",
+    "answer": "SELECT * FROM contracts WHERE is_registration_fee_paid = 0",
+    "explanation": "This query finds contracts with unpaid registration fees by filtering for is_registration_fee_paid = 0, identifying contracts requiring fee payment."
+  },
+  {
+    "question": "Find all waived violations",
+    "context": "CREATE TABLE `violations` (`id` bigint UNSIGNED NOT NULL, `violation_no` varchar(255) NOT NULL, `status` int NOT NULL DEFAULT '1' COMMENT '8=WAIVED');",
+    "answer": "SELECT * FROM violations WHERE status = 8",
+    "explanation": "This query retrieves violations that have been waived by filtering for status = 8, which represents waived violations according to the table comment."
+  },
+  {
+    "question": "Calculate total service charges by building",
+    "context": "CREATE TABLE `bills` (`id` bigint UNSIGNED NOT NULL, `service_charge` decimal(10,2) NOT NULL DEFAULT '0.00', `contract_id` bigint UNSIGNED DEFAULT NULL); CREATE TABLE `contracts` (`id` bigint UNSIGNED NOT NULL, `unit_id` bigint UNSIGNED NOT NULL); CREATE TABLE `units` (`id` bigint UNSIGNED NOT NULL, `building_id` bigint UNSIGNED NOT NULL); CREATE TABLE `buildings` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL);",
+    "answer": "SELECT b.name, SUM(bill.service_charge) as total_service_charge FROM bills bill JOIN contracts c ON bill.contract_id = c.id JOIN units u ON c.unit_id = u.id JOIN buildings b ON u.building_id = b.id GROUP BY b.id",
+    "explanation": "This query calculates total service charges by building through a four-table join from bills to buildings, summing service charge amounts and grouping by building."
+  },
+  {
+    "question": "List all active employee access card types",
+    "context": "CREATE TABLE `employee_access_card_types` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL);",
+    "answer": "SELECT * FROM employee_access_card_types",
+    "explanation": "This query retrieves all available employee access card types, showing the different types of cards that can be issued to employees."
+  },
+  {
+    "question": "Show units with molak property IDs starting with 'MOL'",
+    "context": "CREATE TABLE `units` (`id` bigint UNSIGNED NOT NULL, `unit_no` varchar(255) NOT NULL, `molak_property_id` varchar(255) DEFAULT NULL);",
+    "answer": "SELECT * FROM units WHERE molak_property_id LIKE 'MOL%'",
+    "explanation": "This query finds units with MOLAK property IDs starting with 'MOL' prefix using LIKE pattern matching to identify specific property ID formats."
+  },
+  {
+    "question": "Find all complaints by security personnel",
+    "context": "CREATE TABLE `complaints` (`id` bigint UNSIGNED NOT NULL, `by_security` tinyint(1) NOT NULL DEFAULT '0', `reported_by` bigint UNSIGNED DEFAULT NULL);",
+    "answer": "SELECT * FROM complaints WHERE by_security = 1",
+    "explanation": "This query retrieves complaints filed by security personnel by filtering for by_security = 1, distinguishing security-reported issues from resident complaints."
+  },
+  {
+    "question": "Get vehicle distribution by make",
+    "context": "CREATE TABLE `vehicles` (`id` bigint UNSIGNED NOT NULL, `make` varchar(100) DEFAULT NULL);",
+    "answer": "SELECT make, COUNT(*) as count FROM vehicles WHERE make IS NOT NULL GROUP BY make ORDER BY count DESC",
+    "explanation": "This query analyzes vehicle distribution by manufacturer/make, counting vehicles per make and ordering by count to show most popular vehicle brands."
+  },
+  {
+    "question": "List all parking subscription types",
+    "context": "CREATE TABLE `parking_subscription_types` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL, `duration` int DEFAULT NULL, `is_active` tinyint(1) NOT NULL DEFAULT '1');",
+    "answer": "SELECT * FROM parking_subscription_types WHERE is_active = 1",
+    "explanation": "This query retrieves all active parking subscription types by filtering for is_active = 1, showing available subscription options for users."
+  },
+  {
+    "question": "Show properties with damage amounts exceeding 1000",
+    "context": "CREATE TABLE `property_damage_reports` (`id` bigint UNSIGNED NOT NULL, `amount` decimal(10,2) DEFAULT NULL, `is_damaged` tinyint(1) NOT NULL DEFAULT '0');",
+    "answer": "SELECT * FROM property_damage_reports WHERE is_damaged = 1 AND amount > 1000",
+    "explanation": "This query finds properties with significant damage by filtering for confirmed damage (is_damaged = 1) and damage amounts exceeding 1000, identifying major damage incidents."
+  },
+  {
+    "question": "Find all units with developer parking",
+    "context": "CREATE TABLE `unit_parkings` (`id` bigint UNSIGNED NOT NULL, `unit_id` bigint UNSIGNED DEFAULT NULL, `type` int NOT NULL COMMENT '6=DEVELOPER_PARKING');",
+    "answer": "SELECT DISTINCT unit_id FROM unit_parkings WHERE type = 6 AND unit_id IS NOT NULL",
+    "explanation": "This query finds units that have developer parking spaces by filtering for type = 6 (developer parking) and ensuring valid unit associations."
+  },
+  {
+    "question": "Calculate total consumption charges by meter",
+    "context": "CREATE TABLE `bills` (`id` bigint UNSIGNED NOT NULL, `meter_no` varchar(255) NOT NULL, `consumption_charge` decimal(10,2) NOT NULL DEFAULT '0.00');",
+    "answer": "SELECT meter_no, SUM(consumption_charge) as total_consumption FROM bills GROUP BY meter_no ORDER BY total_consumption DESC",
+    "explanation": "This query calculates total consumption charges per electricity meter by grouping bills by meter number and summing consumption charges, ordered by total consumption."
+  },
+  {
+    "question": "List all void violations",
+    "context": "CREATE TABLE `violations` (`id` bigint UNSIGNED NOT NULL, `violation_no` varchar(255) NOT NULL, `status` int NOT NULL DEFAULT '1' COMMENT '6=VOID');",
+    "answer": "SELECT * FROM violations WHERE status = 6",
+    "explanation": "This query retrieves void violations by filtering for status = 6, which represents canceled or void violations according to the table comment."
+  },
+  {
+    "question": "Show access cards activated this month",
+    "context": "CREATE TABLE `assigned_access_cards` (`id` bigint UNSIGNED NOT NULL, `card_id` varchar(255) NOT NULL, `activated_date` datetime DEFAULT NULL);",
+    "answer": "SELECT * FROM assigned_access_cards WHERE MONTH(activated_date) = MONTH(CURDATE()) AND YEAR(activated_date) = YEAR(CURDATE())",
+    "explanation": "This query finds access cards activated in the current month by filtering activated_date using MONTH() and YEAR() functions to match the current month."
+  },
+  {
+    "question": "Find complaints with material requirements",
+    "context": "CREATE TABLE `building_complaint_materials` (`id` bigint UNSIGNED NOT NULL, `job_alloc_id` bigint UNSIGNED NOT NULL); CREATE TABLE `job_allocs` (`id` bigint UNSIGNED NOT NULL, `joballocable_id` int NOT NULL); CREATE TABLE `complaints` (`id` bigint UNSIGNED NOT NULL);",
+    "answer": "SELECT DISTINCT c.* FROM complaints c JOIN job_allocs ja ON ja.joballocable_id = c.id JOIN building_complaint_materials bcm ON bcm.job_alloc_id = ja.id",
+    "explanation": "This query finds complaints that require materials by joining complaints with job allocations and material requirements, using DISTINCT to avoid duplicate complaints."
+  },
+  {
+    "question": "Get user document statistics",
+    "context": "CREATE TABLE `user_documents` (`id` bigint UNSIGNED NOT NULL, `user_id` bigint UNSIGNED NOT NULL, `document_type` varchar(50) DEFAULT NULL);",
+    "answer": "SELECT document_type, COUNT(*) as count FROM user_documents GROUP BY document_type",
+    "explanation": "This query analyzes user document statistics by counting documents per document type, showing the distribution of different document types uploaded by users."
+  },
+  {
+    "question": "List all partial payment refunds",
+    "context": "CREATE TABLE `payment_refunds` (`id` bigint UNSIGNED NOT NULL, `amount_refunded` decimal(10,2) NOT NULL, `is_partial_refund` tinyint(1) NOT NULL DEFAULT '0');",
+    "answer": "SELECT * FROM payment_refunds WHERE is_partial_refund = 1",
+    "explanation": "This query retrieves partial payment refunds by filtering for is_partial_refund = 1, distinguishing partial refunds from full refunds."
+  },
+  {
+    "question": "Show buildings in specific region",
+    "context": "CREATE TABLE `buildings` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL, `region_id` bigint UNSIGNED NOT NULL); CREATE TABLE `regions` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL);",
+    "answer": "SELECT b.* FROM buildings b JOIN regions r ON b.region_id = r.id WHERE r.name = 'Downtown'",
+    "explanation": "This query finds buildings in a specific region by joining buildings with regions table and filtering for the 'Downtown' region name."
+  },
+  {
+    "question": "Find all cheque payments pending clearance",
+    "context": "CREATE TABLE `payments` (`id` bigint UNSIGNED NOT NULL, `payment_type` int NOT NULL COMMENT '3=CHEQUE', `cheque_date` date DEFAULT NULL, `created_at` timestamp NULL DEFAULT NULL);",
+    "answer": "SELECT * FROM payments WHERE payment_type = 3 AND cheque_date > CURDATE()",
+    "explanation": "This query finds cheque payments that are pending clearance by filtering for payment_type = 3 (cheque) and cheque dates in the future, indicating post-dated cheques."
+  },
+  {
+    "question": "Calculate average unit occupancy duration",
+    "context": "CREATE TABLE `contracts` (`id` bigint UNSIGNED NOT NULL, `start_date` date DEFAULT NULL, `end_date` date DEFAULT NULL, `is_active` tinyint(1) NOT NULL DEFAULT '0');",
+    "answer": "SELECT AVG(DATEDIFF(IFNULL(end_date, CURDATE()), start_date)) as avg_days FROM contracts WHERE start_date IS NOT NULL",
+    "explanation": "This query calculates average occupancy duration using DATEDIFF between start and end dates, using IFNULL to treat ongoing contracts as ending today for calculation purposes."
+  },
+  {
+    "question": "List all active staff types",
+    "context": "CREATE TABLE `staff_types` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL);",
+    "answer": "SELECT * FROM staff_types ORDER BY name",
+    "explanation": "This query retrieves all staff types ordered alphabetically by name, showing the different categories of staff positions available in the system."
+  },
+  {
+    "question": "Show contracts with both dates null",
+    "context": "CREATE TABLE `contracts` (`id` bigint UNSIGNED NOT NULL, `contract_no` varchar(255) NOT NULL, `start_date` date DEFAULT NULL, `end_date` date DEFAULT NULL);",
+    "answer": "SELECT * FROM contracts WHERE start_date IS NULL AND end_date IS NULL",
+    "explanation": "This query finds contracts with missing date information by filtering for both start_date and end_date being null, indicating incomplete contract data."
+  },
+  {
+    "question": "Find products with custom descriptions",
+    "context": "CREATE TABLE `building_complaint_material_items` (`id` bigint UNSIGNED NOT NULL, `custom_product_name` varchar(255) DEFAULT NULL, `product_type` tinyint(1) NOT NULL COMMENT '2=Custom/External Product');",
+    "answer": "SELECT * FROM building_complaint_material_items WHERE product_type = 2 AND custom_product_name IS NOT NULL",
+    "explanation": "This query finds custom/external products by filtering for product_type = 2 and non-null custom product names, identifying non-standard inventory items."
+  },
+  {
+    "question": "Get payment statistics by building and charge type",
+    "context": "CREATE TABLE `split_charge_list` (`id` bigint UNSIGNED NOT NULL, `building_id` bigint UNSIGNED NOT NULL, `charge_type` bigint UNSIGNED NOT NULL, `amount` decimal(8,2) NOT NULL); CREATE TABLE `buildings` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL); CREATE TABLE `charge_types` (`id` bigint UNSIGNED NOT NULL, `charge_type` varchar(255) NOT NULL);",
+    "answer": "SELECT b.name, ct.charge_type, SUM(scl.amount) as total FROM split_charge_list scl JOIN buildings b ON scl.building_id = b.id JOIN charge_types ct ON scl.charge_type = ct.id GROUP BY b.id, ct.id",
+    "explanation": "This query provides payment statistics by building and charge type through joins with buildings and charge_types tables, summing amounts and grouping by both dimensions."
+  },
+  {
+    "question": "List all units with common area parking",
+    "context": "CREATE TABLE `unit_parkings` (`id` bigint UNSIGNED NOT NULL, `unit_id` bigint UNSIGNED DEFAULT NULL, `type` int NOT NULL COMMENT '2=COMMON_AREA');",
+    "answer": "SELECT DISTINCT unit_id FROM unit_parkings WHERE type = 2 AND unit_id IS NOT NULL",
+    "explanation": "This query finds units with common area parking by filtering for type = 2 (common area) and ensuring valid unit associations, using DISTINCT to avoid duplicates."
+  },
+  {
+    "question": "Show violations requiring evidence",
+    "context": "CREATE TABLE `violations` (`id` bigint UNSIGNED NOT NULL, `violation_description_id` bigint UNSIGNED DEFAULT NULL); CREATE TABLE `violation_descriptions` (`id` bigint UNSIGNED NOT NULL, `violation_type_id` bigint UNSIGNED NOT NULL); CREATE TABLE `violation_types` (`id` bigint UNSIGNED NOT NULL, `requires_evidence` tinyint(1) DEFAULT 0);",
+    "answer": "SELECT v.* FROM violations v JOIN violation_descriptions vd ON v.violation_description_id = vd.id JOIN violation_types vt ON vd.violation_type_id = vt.id WHERE vt.requires_evidence = 1",
+    "explanation": "This query finds violations that require evidence documentation through a three-table join, filtering for violation types where requires_evidence = 1."
+  },
+  {
+    "question": "Find all contracts with missing ejari",
+    "context": "CREATE TABLE `contracts` (`id` bigint UNSIGNED NOT NULL, `contract_no` varchar(255) NOT NULL, `ejari_expiry` date DEFAULT NULL);",
+    "answer": "SELECT * FROM contracts WHERE ejari_expiry IS NULL OR ejari_expiry < CURDATE()",
+    "explanation": "This query finds contracts with missing or expired ejari documents by filtering for null ejari_expiry dates or expiry dates before today."
+  },
+  {
+    "question": "Calculate total quotation VAT",
+    "context": "CREATE TABLE `job_quotation` (`id` bigint UNSIGNED NOT NULL, `vat` decimal(10,2) NOT NULL DEFAULT '0.00', `status` int NOT NULL);",
+    "answer": "SELECT SUM(vat) as total_vat FROM job_quotation WHERE status = 2",
+    "explanation": "This query calculates total VAT from paid quotations by summing VAT amounts for quotations with status = 2 (Quote Paid)."
+  },
+  {
+    "question": "List all biannual parking subscriptions",
+    "context": "CREATE TABLE `parking_subscription_types` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL, `duration` int DEFAULT NULL);",
+    "answer": "SELECT * FROM parking_subscription_types WHERE duration = 6",
+    "explanation": "This query finds biannual parking subscription types by filtering for duration = 6 months, identifying 6-month subscription options."
+  },
+  {
+    "question": "Show complaints with specific time slots",
+    "context": "CREATE TABLE `complaints` (`id` bigint UNSIGNED NOT NULL, `slot_date` date DEFAULT NULL, `slot_time` int DEFAULT NULL COMMENT '1=Morning, 2=Afternoon, 3=Evening');",
+    "answer": "SELECT *, CASE slot_time WHEN 1 THEN 'Morning' WHEN 2 THEN 'Afternoon' WHEN 3 THEN 'Evening' END as time_slot FROM complaints WHERE slot_date IS NOT NULL",
+    "explanation": "This query shows complaints with scheduled time slots by filtering for non-null slot dates and using CASE to convert time slot codes to readable labels."
+  },
+  {
+    "question": "Find all units with extra parking",
+    "context": "CREATE TABLE `unit_parkings` (`id` bigint UNSIGNED NOT NULL, `unit_id` bigint UNSIGNED DEFAULT NULL, `type` int NOT NULL COMMENT '3=EXTRA');",
+    "answer": "SELECT DISTINCT unit_id FROM unit_parkings WHERE type = 3 AND unit_id IS NOT NULL",
+    "explanation": "This query finds units with extra parking spaces by filtering for type = 3 (extra parking) and ensuring valid unit associations, using DISTINCT to avoid duplicates."
+  },
+  {
+    "question": "Get monthly trend of new contracts",
+    "context": "CREATE TABLE `contracts` (`id` bigint UNSIGNED NOT NULL, `created_at` timestamp NULL DEFAULT NULL);",
+    "answer": "SELECT DATE_FORMAT(created_at, '%Y-%m') as month, COUNT(*) as new_contracts FROM contracts GROUP BY DATE_FORMAT(created_at, '%Y-%m') ORDER BY month DESC LIMIT 12",
+    "explanation": "This query shows the monthly trend of new contracts over the last 12 months by grouping contracts by creation month and counting new contracts per month."
+  },
+  {
+    "question": "List all units with active complaints",
+    "context": "CREATE TABLE `complaints` (`id` bigint UNSIGNED NOT NULL, `building_id` bigint UNSIGNED DEFAULT NULL, `unit_no` varchar(255) DEFAULT NULL); CREATE TABLE `job_allocs` (`id` bigint UNSIGNED NOT NULL, `joballocable_id` int NOT NULL, `status` int NOT NULL);",
+    "answer": "SELECT DISTINCT c.unit_no FROM complaints c JOIN job_allocs ja ON ja.joballocable_id = c.id WHERE ja.status IN (1, 2, 3) AND c.unit_no IS NOT NULL",
+    "explanation": "This query finds units with active complaints by joining complaints with job allocations, filtering for active job statuses (1, 2, 3), and using DISTINCT to avoid duplicate units."
+  },
+  {
+    "question": "Show all card holders with multiple access cards",
+    "context": "CREATE TABLE `assigned_access_cards` (`id` bigint UNSIGNED NOT NULL, `contract_id` bigint UNSIGNED DEFAULT NULL, `card_id` varchar(255) NOT NULL);",
+    "answer": "SELECT contract_id, COUNT(*) as card_count FROM assigned_access_cards WHERE contract_id IS NOT NULL GROUP BY contract_id HAVING card_count > 1",
+    "explanation": "This query identifies card holders with multiple access cards by counting cards per contract and using HAVING to filter for contracts with more than one card."
+  },
+  {
+    "question": "Find vehicles with Dubai plate codes",
+    "context": "CREATE TABLE `vehicles` (`id` bigint UNSIGNED NOT NULL, `number_plate` varchar(255) NOT NULL, `number_plate_code_id` bigint UNSIGNED NOT NULL); CREATE TABLE `number_plate_codes` (`id` bigint UNSIGNED NOT NULL, `code` varchar(255) NOT NULL, `city_id` bigint UNSIGNED NOT NULL); CREATE TABLE `cities` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL);",
+    "answer": "SELECT v.* FROM vehicles v JOIN number_plate_codes npc ON v.number_plate_code_id = npc.id JOIN cities c ON npc.city_id = c.id WHERE c.name = 'Dubai'",
+    "explanation": "This query finds vehicles with Dubai plate codes through a three-table join from vehicles to cities via plate codes, filtering for Dubai city name."
+  },
+  {
+    "question": "Calculate total annual declared load charges",
+    "context": "CREATE TABLE `bills` (`id` bigint UNSIGNED NOT NULL, `annual_declared_load_tr` decimal(10,2) NOT NULL DEFAULT '0.00', `declared_load_charges` decimal(10,2) NOT NULL DEFAULT '0.00');",
+    "answer": "SELECT SUM(annual_declared_load_tr) as total_load_tr, SUM(declared_load_charges) as total_charges FROM bills",
+    "explanation": "This query calculates totals for both annual declared load transmission and declared load charges by summing both fields across all bills."
+  },
+  {
+    "question": "List all approved moving requests",
+    "context": "CREATE TABLE `moving_requests` (`id` bigint UNSIGNED NOT NULL, `ref_no` int NOT NULL, `status` int NOT NULL DEFAULT '1' COMMENT '2=APPROVED', `approved_by` bigint UNSIGNED DEFAULT NULL);",
+    "answer": "SELECT * FROM moving_requests WHERE status = 2 AND approved_by IS NOT NULL",
+    "explanation": "This query finds approved moving requests by filtering for status = 2 (approved) and ensuring an approver is recorded in approved_by field."
+  },
+  {
+    "question": "Show units with highest complaint frequency",
+    "context": "CREATE TABLE `complaints` (`id` bigint UNSIGNED NOT NULL, `unit_no` varchar(255) DEFAULT NULL, `created_at` timestamp NULL DEFAULT NULL);",
+    "answer": "SELECT unit_no, COUNT(*) as complaint_count FROM complaints WHERE unit_no IS NOT NULL GROUP BY unit_no ORDER BY complaint_count DESC LIMIT 10",
+    "explanation": "This query identifies units with highest complaint frequencies by counting complaints per unit number, filtering for valid unit numbers, and limiting to top 10 problematic units."
+  },
+  {
+    "question": "Find all lost access cards not yet replaced",
+    "context": "CREATE TABLE `assigned_access_cards` (`id` bigint UNSIGNED NOT NULL, `status` int DEFAULT '1' COMMENT '3=LOST'); CREATE TABLE `access_card_request_mappings` (`id` bigint UNSIGNED NOT NULL, `lost_card_id` bigint UNSIGNED DEFAULT NULL);",
+    "answer": "SELECT aac.* FROM assigned_access_cards aac LEFT JOIN access_card_request_mappings acrm ON aac.id = acrm.lost_card_id WHERE aac.status = 3 AND acrm.id IS NULL",
+    "explanation": "This query finds lost access cards that haven't been replaced by using LEFT JOIN to check for replacement requests and filtering for lost status (3) with no replacement record."
+  },
+  {
+    "question": "Get supplier contact information",
+    "context": "CREATE TABLE `suppliers` (`id` bigint UNSIGNED NOT NULL, `company` varchar(255) NOT NULL, `email` varchar(255) NOT NULL, `phone` varchar(255) NOT NULL);",
+    "answer": "SELECT company, email, phone FROM suppliers ORDER BY company",
+    "explanation": "This query retrieves supplier contact information including company name, email, and phone number, ordered alphabetically by company name for easy reference."
+  },
+  {
+    "question": "Calculate parking revenue by subscription type",
+    "context": "CREATE TABLE `parking_subscriptions` (`id` bigint UNSIGNED NOT NULL, `parking_subscription_type_id` bigint UNSIGNED NOT NULL, `subscription_amount` decimal(8,2) NOT NULL); CREATE TABLE `parking_subscription_types` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL);",
+    "answer": "SELECT pst.name, SUM(ps.subscription_amount) as total_revenue FROM parking_subscriptions ps JOIN parking_subscription_types pst ON ps.parking_subscription_type_id = pst.id GROUP BY pst.id",
+    "explanation": "This query calculates revenue by parking subscription type by joining subscriptions with subscription types and summing amounts grouped by subscription type."
+  },
+  {
+    "question": "List all bills with mail reminders sent",
+    "context": "CREATE TABLE `bills` (`id` bigint UNSIGNED NOT NULL, `tax_invoice_no` varchar(255) NOT NULL, `mail_reminder_status` int DEFAULT NULL COMMENT '1=FIRST_REMINDER, 2=SECOND_REMINDER, 3=DISCONNECTION_WARNING');",
+    "answer": "SELECT * FROM bills WHERE mail_reminder_status IS NOT NULL ORDER BY mail_reminder_status",
+    "explanation": "This query finds bills where mail reminders have been sent by filtering for non-null reminder status and ordering by reminder status to show escalation sequence."
+  },
+  {
+    "question": "Show units with verified complaints",
+    "context": "CREATE TABLE `complaints` (`id` bigint UNSIGNED NOT NULL, `unit_no` varchar(255) DEFAULT NULL, `verification_status` int DEFAULT NULL COMMENT '1=VERIFIED', `verified_by` bigint UNSIGNED DEFAULT NULL);",
+    "answer": "SELECT DISTINCT unit_no FROM complaints WHERE verification_status = 1 AND unit_no IS NOT NULL",
+    "explanation": "This query finds units with verified complaints by filtering for verification_status = 1 and valid unit numbers, using DISTINCT to avoid duplicate units."
+  },
+  {
+    "question": "Find all warning violations",
+    "context": "CREATE TABLE `violations` (`id` bigint UNSIGNED NOT NULL, `violation_no` varchar(255) NOT NULL, `status` int NOT NULL DEFAULT '1' COMMENT '7=WARNING');",
+    "answer": "SELECT * FROM violations WHERE status = 7",
+    "explanation": "This query retrieves warning violations by filtering for status = 7, which represents warning violations according to the table comment."
+  },
+  {
+    "question": "Get product category distribution",
+    "context": "CREATE TABLE `products` (`id` bigint UNSIGNED NOT NULL, `product_category_id` bigint UNSIGNED NOT NULL); CREATE TABLE `product_categories` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL);",
+    "answer": "SELECT pc.name, COUNT(p.id) as product_count FROM product_categories pc LEFT JOIN products p ON pc.id = p.product_category_id GROUP BY pc.id",
+    "explanation": "This query shows product distribution across categories using LEFT JOIN to include categories with no products and counting products per category."
+  },
+  {
+    "question": "List all tenants in subletting arrangements",
+    "context": "CREATE TABLE `tenants` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL, `is_rental_property` tinyint(1) NOT NULL DEFAULT '0');",
+    "answer": "SELECT * FROM tenants WHERE is_rental_property = 1",
+    "explanation": "This query finds tenants in subletting arrangements by filtering for is_rental_property = 1, identifying tenants who are subletting their units."
+  },
+  {
+    "question": "Show access cards deactivated this month",
+    "context": "CREATE TABLE `assigned_access_cards` (`id` bigint UNSIGNED NOT NULL, `card_id` varchar(255) NOT NULL, `deactivated_date` datetime DEFAULT NULL);",
+    "answer": "SELECT * FROM assigned_access_cards WHERE MONTH(deactivated_date) = MONTH(CURDATE()) AND YEAR(deactivated_date) = YEAR(CURDATE())",
+    "explanation": "This query finds access cards deactivated in the current month by filtering deactivated_date using MONTH() and YEAR() functions to match the current month."
+  },
+  {
+    "question": "Find all units with multiple floor assignments",
+    "context": "CREATE TABLE `units` (`id` bigint UNSIGNED NOT NULL, `unit_no` varchar(255) NOT NULL, `floor_id` bigint UNSIGNED DEFAULT NULL, `building_id` bigint UNSIGNED NOT NULL);",
+    "answer": "SELECT building_id, unit_no, COUNT(*) as count FROM units GROUP BY building_id, unit_no HAVING count > 1",
+    "explanation": "This query identifies data inconsistencies by finding unit numbers that appear multiple times within the same building, which could indicate duplicate records or data errors."
+  },
+  {
+    "question": "Calculate average payment processing time",
+    "context": "CREATE TABLE `bills` (`id` bigint UNSIGNED NOT NULL, `tax_invoice_date` date NOT NULL, `paid_on` date DEFAULT NULL, `is_paid` tinyint(1) NOT NULL DEFAULT '0');",
+    "answer": "SELECT AVG(DATEDIFF(paid_on, tax_invoice_date)) as avg_days_to_payment FROM bills WHERE is_paid = 1 AND paid_on IS NOT NULL",
+    "explanation": "This query calculates average payment processing time using DATEDIFF between invoice date and payment date, filtering for paid bills with valid payment dates."
+  },
+  {
+    "question": "List all incident reports by violation type",
+    "context": "CREATE TABLE `incident_reports` (`id` bigint UNSIGNED NOT NULL, `violation_type_id` bigint UNSIGNED NOT NULL); CREATE TABLE `violation_types` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL);",
+    "answer": "SELECT vt.name, COUNT(ir.id) as incident_count FROM incident_reports ir JOIN violation_types vt ON ir.violation_type_id = vt.id GROUP BY vt.id",
+    "explanation": "This query counts incident reports by violation type through a join with violation_types table, grouping by violation type to show incident distribution."
+  },
+  {
+    "question": "Show buildings with subscription IDs",
+    "context": "CREATE TABLE `building_subid` (`id` bigint UNSIGNED NOT NULL, `sub_id` varchar(255) NOT NULL, `building_id` bigint UNSIGNED NOT NULL);",
+    "answer": "SELECT DISTINCT building_id, COUNT(sub_id) as subscription_count FROM building_subid GROUP BY building_id",
+    "explanation": "This query shows buildings with their subscription ID counts by grouping building subscription IDs by building and counting subscriptions per building."
+  },
+  {
+    "question": "Find all male owners",
+    "context": "CREATE TABLE `owners` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL, `user_id` bigint UNSIGNED NOT NULL); CREATE TABLE `users` (`id` bigint UNSIGNED NOT NULL, `gender` int DEFAULT NULL COMMENT '0=Male');",
+    "answer": "SELECT o.* FROM owners o JOIN users u ON o.user_id = u.id WHERE u.gender = 0",
+    "explanation": "This query finds male owners by joining owners with users table and filtering for gender = 0, which represents male according to the table comment."
+  },
+  {
+    "question": "Get complaint resolution statistics by engineer",
+    "context": "CREATE TABLE `job_allocs` (`id` bigint UNSIGNED NOT NULL, `cluster_engineer_id` bigint UNSIGNED DEFAULT NULL, `status` int NOT NULL, `date_completed` date DEFAULT NULL); CREATE TABLE `cluster_engineers` (`id` bigint UNSIGNED NOT NULL, `staff_id` bigint UNSIGNED NOT NULL); CREATE TABLE `staff` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL);",
+    "answer": "SELECT s.name, COUNT(CASE WHEN ja.status = 4 THEN 1 END) as completed, COUNT(CASE WHEN ja.status IN (1,2,3) THEN 1 END) as pending FROM job_allocs ja JOIN cluster_engineers ce ON ja.cluster_engineer_id = ce.id JOIN staff s ON ce.staff_id = s.id GROUP BY s.id",
+    "explanation": "This query provides complaint resolution statistics per engineer using conditional counting with CASE statements to separate completed and pending jobs, grouped by engineer."
+  },
+  {
+    "question": "List all properties with moving damage",
+    "context": "CREATE TABLE `moving_damage_reports` (`id` bigint UNSIGNED NOT NULL, `request_id` bigint UNSIGNED NOT NULL, `comments` varchar(255) DEFAULT NULL);",
+    "answer": "SELECT * FROM moving_damage_reports WHERE comments IS NOT NULL",
+    "explanation": "This query finds properties with moving damage by filtering for non-null comments, indicating that damage was reported and documented during moving."
+  },
+  {
+    "question": "Show units without assigned parking",
+    "context": "CREATE TABLE `units` (`id` bigint UNSIGNED NOT NULL, `unit_no` varchar(255) NOT NULL); CREATE TABLE `unit_parkings` (`id` bigint UNSIGNED NOT NULL, `unit_id` bigint UNSIGNED DEFAULT NULL);",
+    "answer": "SELECT u.* FROM units u LEFT JOIN unit_parkings up ON u.id = up.unit_id WHERE up.id IS NULL",
+    "explanation": "This query finds units without assigned parking using LEFT JOIN and filtering for NULL values in the parking table, indicating units with no parking allocation."
+  },
+  {
+    "question": "Calculate total AC deposit amounts",
+    "context": "CREATE TABLE `deposits` (`id` bigint UNSIGNED NOT NULL, `type` int NOT NULL COMMENT '1=AC_DEPOSIT', `amount` double(8,2) NOT NULL);",
+    "answer": "SELECT SUM(amount) as total_ac_deposits FROM deposits WHERE type = 1",
+    "explanation": "This query calculates total AC deposit amounts by summing amounts for deposits with type = 1 (AC deposit) according to the table comment."
+  },
+  {
+    "question": "Find all expired job payment links",
+    "context": "CREATE TABLE `job_invoices` (`id` bigint UNSIGNED NOT NULL, `invoice_no` varchar(255) NOT NULL, `is_payment_url_expired` tinyint(1) NOT NULL DEFAULT '0', `payment_url_expired_on` date DEFAULT NULL);",
+    "answer": "SELECT * FROM job_invoices WHERE is_payment_url_expired = 1",
+    "explanation": "This query finds job invoices with expired payment links by filtering for is_payment_url_expired = 1, identifying invoices requiring new payment links."
+  },
+  {
+    "question": "List all building areas with complaints",
+    "context": "CREATE TABLE `complaints` (`id` bigint UNSIGNED NOT NULL, `building_area` varchar(255) DEFAULT NULL);",
+    "answer": "SELECT building_area, COUNT(*) as complaint_count FROM complaints WHERE building_area IS NOT NULL GROUP BY building_area",
+    "explanation": "This query analyzes complaints by building area, counting complaints per area and filtering for valid building area values to show problem areas."
+  },
+  {
+    "question": "Show vehicles by color distribution",
+    "context": "CREATE TABLE `vehicles` (`id` bigint UNSIGNED NOT NULL, `color` varchar(50) DEFAULT NULL);",
+    "answer": "SELECT color, COUNT(*) as count FROM vehicles WHERE color IS NOT NULL GROUP BY color ORDER BY count DESC",
+    "explanation": "This query shows vehicle distribution by color, counting vehicles per color and ordering by count to show most common vehicle colors first."
+  },
+  {
+    "question": "Get access card request approval rate",
+    "context": "CREATE TABLE `access_card_request_mappings` (`id` bigint UNSIGNED NOT NULL, `is_approved` tinyint(1) NOT NULL DEFAULT '0');",
+    "answer": "SELECT COUNT(CASE WHEN is_approved = 1 THEN 1 END) * 100.0 / COUNT(*) as approval_rate FROM access_card_request_mappings",
+    "explanation": "This query calculates access card request approval rate using conditional counting with CASE to count approved requests and dividing by total requests for percentage."
+  },
+  {
+    "question": "Find contracts with specific meter numbers",
+    "context": "CREATE TABLE `contracts` (`id` bigint UNSIGNED NOT NULL, `contract_no` varchar(255) NOT NULL, `meter_no` varchar(255) DEFAULT NULL);",
+    "answer": "SELECT * FROM contracts WHERE meter_no LIKE '115%'",
+    "explanation": "This query finds contracts with meter numbers starting with '115' using LIKE pattern matching to identify specific meter number ranges."
+  },
+  {
+    "question": "List all units by type and occupancy",
+    "context": "CREATE TABLE `units` (`id` bigint UNSIGNED NOT NULL, `unit_type_id` bigint UNSIGNED DEFAULT NULL, `is_occupied` tinyint(1) NOT NULL DEFAULT '0'); CREATE TABLE `unit_types` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL);",
+    "answer": "SELECT ut.name, COUNT(CASE WHEN u.is_occupied = 1 THEN 1 END) as occupied, COUNT(CASE WHEN u.is_occupied = 0 THEN 1 END) as vacant FROM units u JOIN unit_types ut ON u.unit_type_id = ut.id GROUP BY ut.id",
+    "explanation": "This query provides occupancy statistics by unit type using conditional counting with CASE statements to separate occupied and vacant units, grouped by unit type."
+  },
+  {
+    "question": "Show all split transactions",
+    "context": "CREATE TABLE `split_transactions` (`id` bigint UNSIGNED NOT NULL, `reference_no` bigint NOT NULL, `amount` decimal(8,2) NOT NULL, `is_split` tinyint(1) NOT NULL DEFAULT '0');",
+    "answer": "SELECT * FROM split_transactions WHERE is_split = 1",
+    "explanation": "This query retrieves transactions that have been split by filtering for is_split = 1, showing payments that were divided across multiple charges or accounts."
+  },
+  {
+    "question": "Calculate total bill amounts including VAT",
+    "context": "CREATE TABLE `bills` (`id` bigint UNSIGNED NOT NULL, `current_due_including_vat` decimal(10,2) NOT NULL DEFAULT '0.00', `bill_of` date DEFAULT NULL);",
+    "answer": "SELECT DATE_FORMAT(bill_of, '%Y-%m') as month, SUM(current_due_including_vat) as total_with_vat FROM bills GROUP BY DATE_FORMAT(bill_of, '%Y-%m')",
+    "explanation": "This query calculates monthly totals of bill amounts including VAT by grouping bills by month and summing the VAT-inclusive amounts."
+  },
+  {
+    "question": "Find all contracts moved out",
+    "context": "CREATE TABLE `contracts` (`id` bigint UNSIGNED NOT NULL, `contract_no` varchar(255) NOT NULL, `status` int NOT NULL DEFAULT '2' COMMENT '5=MOVED_OUT');",
+    "answer": "SELECT * FROM contracts WHERE status = 5",
+    "explanation": "This query finds contracts where tenants have moved out by filtering for status = 5, which represents moved out contracts according to the table comment."
+  },
+  {
+    "question": "List access cards by expiry status",
+    "context": "CREATE TABLE `assigned_access_cards` (`id` bigint UNSIGNED NOT NULL, `expiry_date` datetime DEFAULT NULL, `status` int DEFAULT '1');",
+    "answer": "SELECT CASE WHEN expiry_date < NOW() THEN 'Expired' WHEN expiry_date BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 30 DAY) THEN 'Expiring Soon' ELSE 'Valid' END as expiry_status, COUNT(*) as count FROM assigned_access_cards WHERE status = 1 GROUP BY expiry_status",
+    "explanation": "This query categorizes active access cards by expiry status using CASE statement with date comparisons to create 'Expired', 'Expiring Soon', and 'Valid' categories."
+  },
+  {
+    "question": "Show all commitment reports received",
+    "context": "CREATE TABLE `commitment_reports` (`id` bigint UNSIGNED NOT NULL, `incident_report_id` bigint UNSIGNED NOT NULL, `status` tinyint(1) NOT NULL DEFAULT '0' COMMENT '1=Received');",
+    "answer": "SELECT * FROM commitment_reports WHERE status = 1",
+    "explanation": "This query retrieves commitment reports that have been received by filtering for status = 1, showing completed commitment submissions."
+  },
+  {
+    "question": "Get vehicle year distribution",
+    "context": "CREATE TABLE `vehicles` (`id` bigint UNSIGNED NOT NULL, `year` int DEFAULT NULL);",
+    "answer": "SELECT year, COUNT(*) as count FROM vehicles WHERE year IS NOT NULL GROUP BY year ORDER BY year DESC",
+    "explanation": "This query analyzes vehicle age distribution by counting vehicles per manufacturing year, filtering for valid years and ordering by year to show newest to oldest."
+  },
+  {
+    "question": "Find all unregistered user payments",
+    "context": "CREATE TABLE `unregistered_user_payments` (`id` bigint UNSIGNED NOT NULL, `amount` decimal(10,2) NOT NULL, `payment_for` varchar(255) NOT NULL);",
+    "answer": "SELECT * FROM unregistered_user_payments ORDER BY created_at DESC",
+    "explanation": "This query retrieves payments made by unregistered users, ordered by creation date to show most recent payments first."
+  },
+  {
+    "question": "List all products requiring reorder",
+    "context": "CREATE TABLE `products` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL, `status` int NOT NULL DEFAULT '3' COMMENT '4=REQUISITION_CREATED');",
+    "answer": "SELECT * FROM products WHERE status = 4",
+    "explanation": "This query finds products requiring reorder by filtering for status = 4 (requisition created), indicating products that have triggered the reorder process."
+  },
+  {
+    "question": "Show bills with disconnection warnings",
+    "context": "CREATE TABLE `bills` (`id` bigint UNSIGNED NOT NULL, `tax_invoice_no` varchar(255) NOT NULL, `mail_reminder_status` int DEFAULT NULL COMMENT '3=DISCONNECTION_WARNING, 4=DISCONNECTION_INTIMATION');",
+    "answer": "SELECT * FROM bills WHERE mail_reminder_status IN (3, 4)",
+    "explanation": "This query finds bills with disconnection warnings by filtering for reminder statuses 3 and 4, which represent disconnection warning and intimation stages."
+  },
+  {
+    "question": "Calculate total job invoice amounts",
+    "context": "CREATE TABLE `job_invoices` (`id` bigint UNSIGNED NOT NULL, `total_amount` double NOT NULL, `status` int NOT NULL COMMENT '0=Unpaid, 1=Paid');",
+    "answer": "SELECT status, SUM(total_amount) as total FROM job_invoices GROUP BY status",
+    "explanation": "This query calculates total job invoice amounts by payment status, grouping invoices by status and summing amounts to show paid vs unpaid totals."
+  },
+  {
+    "question": "Find all plumbing complaints",
+    "context": "CREATE TABLE `complaints` (`id` bigint UNSIGNED NOT NULL, `complaint_type_id` bigint UNSIGNED NOT NULL); CREATE TABLE `complaint_types` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL);",
+    "answer": "SELECT c.* FROM complaints c JOIN complaint_types ct ON c.complaint_type_id = ct.id WHERE ct.name LIKE '%Plumbing%'",
+    "explanation": "This query finds plumbing-related complaints by joining complaints with complaint_types and using LIKE to match complaint types containing 'Plumbing'."
+  },
+  {
+    "question": "List buildings with vacant units",
+    "context": "CREATE TABLE `units` (`id` bigint UNSIGNED NOT NULL, `building_id` bigint UNSIGNED NOT NULL, `is_occupied` tinyint(1) NOT NULL DEFAULT '0'); CREATE TABLE `buildings` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL);",
+    "answer": "SELECT b.name, COUNT(u.id) as vacant_units FROM units u JOIN buildings b ON u.building_id = b.id WHERE u.is_occupied = 0 GROUP BY b.id HAVING vacant_units > 0",
+    "explanation": "This query identifies buildings with vacant units by counting unoccupied units per building and using HAVING to filter for buildings with at least one vacant unit."
+  },
+  {
+    "question": "Show all deposit refunds with deductions",
+    "context": "CREATE TABLE `deposits` (`id` bigint UNSIGNED NOT NULL, `deduction_amount` decimal(10,2) DEFAULT 0.00, `deduction_reason` text DEFAULT NULL);",
+    "answer": "SELECT * FROM deposits WHERE deduction_amount > 0",
+    "explanation": "This query finds deposit refunds where deductions were applied by filtering for positive deduction amounts, showing cases where full deposits were not returned."
+  },
+  {
+    "question": "Get moving request status distribution",
+    "context": "CREATE TABLE `moving_requests` (`id` bigint UNSIGNED NOT NULL, `status` int NOT NULL DEFAULT '1' COMMENT '1=NEW_REQUEST, 2=APPROVED, 3=REJECTED, 4=CLEARED');",
+    "answer": "SELECT CASE status WHEN 1 THEN 'NEW_REQUEST' WHEN 2 THEN 'APPROVED' WHEN 3 THEN 'REJECTED' WHEN 4 THEN 'CLEARED' END as status_name, COUNT(*) as count FROM moving_requests GROUP BY status",
+    "explanation": "This query analyzes moving request status distribution using CASE statement to convert status codes to readable labels and counting requests per status."
+  },
+  {
+    "question": "Find all AC-related complaints",
+    "context": "CREATE TABLE `complaints` (`id` bigint UNSIGNED NOT NULL, `complaint_type_id` bigint UNSIGNED NOT NULL, `description` text NOT NULL); CREATE TABLE `complaint_types` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL);",
+    "answer": "SELECT c.* FROM complaints c JOIN complaint_types ct ON c.complaint_type_id = ct.id WHERE ct.name LIKE '%AC%' OR ct.name LIKE '%Air%'",
+    "explanation": "This query finds AC-related complaints by joining with complaint types and using LIKE patterns to match complaint types containing 'AC' or 'Air' keywords."
+  },
+  {
+    "question": "List all active notices for apartments",
+    "context": "CREATE TABLE `notice_entities` (`id` bigint UNSIGNED NOT NULL, `title` varchar(255) NOT NULL, `type` int NOT NULL COMMENT '2=APARTMENT');",
+    "answer": "SELECT * FROM notice_entities WHERE type = 2",
+    "explanation": "This query retrieves notices specifically for apartments by filtering for type = 2, which represents apartment notices according to the table comment."
+  },
+  {
+    "question": "Show vehicles with parking assignments",
+    "context": "CREATE TABLE `vehicles` (`id` bigint UNSIGNED NOT NULL, `number_plate` varchar(255) NOT NULL, `parking_no` int DEFAULT NULL);",
+    "answer": "SELECT * FROM vehicles WHERE parking_no IS NOT NULL",
+    "explanation": "This query finds vehicles that have been assigned parking spaces by filtering for non-null parking_no values, showing vehicles with designated parking."
+  },
+  {
+    "question": "Calculate average deposit balance",
+    "context": "CREATE TABLE `deposits` (`id` bigint UNSIGNED NOT NULL, `amount` double(8,2) NOT NULL, `balance` double(8,2) DEFAULT NULL);",
+    "answer": "SELECT AVG(balance) as avg_balance FROM deposits WHERE balance IS NOT NULL",
+    "explanation": "This query calculates the average remaining deposit balance by using AVG() function on the balance field, filtering for deposits with valid balance values."
+  },
+  {
+    "question": "Find all shop parking allocations",
+    "context": "CREATE TABLE `unit_parkings` (`id` bigint UNSIGNED NOT NULL, `parking_no` varchar(255) NOT NULL, `type` int NOT NULL COMMENT '5=SHOP');",
+    "answer": "SELECT * FROM unit_parkings WHERE type = 5",
+    "explanation": "This query retrieves parking spaces allocated to shops by filtering for type = 5, which represents shop parking according to the table comment."
+  },
+  {
+    "question": "List all violations with balance amounts",
+    "context": "CREATE TABLE `violations` (`id` bigint UNSIGNED NOT NULL, `violation_no` varchar(255) NOT NULL, `balance_amount` double(8,2) DEFAULT NULL);",
+    "answer": "SELECT * FROM violations WHERE balance_amount > 0 ORDER BY balance_amount DESC",
+    "explanation": "This query finds violations with outstanding balances by filtering for positive balance amounts and ordering by balance amount to show highest outstanding amounts first."
+  },
+  {
+    "question": "Show payment adjustments",
+    "context": "CREATE TABLE `payments` (`id` bigint UNSIGNED NOT NULL, `payment_type` int NOT NULL COMMENT '7=ADJUSTMENT', `amount` decimal(10,2) NOT NULL, `remarks` varchar(255) DEFAULT NULL);",
+    "answer": "SELECT * FROM payments WHERE payment_type = 7",
+    "explanation": "This query retrieves payment adjustments by filtering for payment_type = 7, which represents adjustment transactions according to the table comment."
+  },
+  {
+    "question": "Get bill payment compliance rate",
+    "context": "CREATE TABLE `bills` (`id` bigint UNSIGNED NOT NULL, `is_paid` tinyint(1) NOT NULL DEFAULT '0', `tax_invoice_due_date` date NOT NULL);",
+    "answer": "SELECT COUNT(CASE WHEN is_paid = 1 THEN 1 END) * 100.0 / COUNT(*) as compliance_rate FROM bills WHERE tax_invoice_due_date < CURDATE()",
+    "explanation": "This query calculates bill payment compliance rate for overdue bills using conditional counting to find paid bills among those past due date, expressing as percentage."
+  },
+  {
+    "question": "Find units with multiple occupancy types",
+    "context": "CREATE TABLE `contracts` (`id` bigint UNSIGNED NOT NULL, `unit_id` bigint UNSIGNED NOT NULL, `contractable_type` varchar(255) DEFAULT NULL, `is_active` tinyint(1) NOT NULL DEFAULT '0');",
+    "answer": "SELECT unit_id, COUNT(DISTINCT contractable_type) as types FROM contracts WHERE is_active = 1 GROUP BY unit_id HAVING types > 1",
+    "explanation": "This query identifies units with multiple occupancy types (both owner and tenant) by counting distinct contract types per unit and using HAVING to filter for units with more than one type."
+  },
+  {
+    "question": "List all products by store type",
+    "context": "CREATE TABLE `products` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL, `store_type` int NOT NULL COMMENT '1=KINGLY, 2=UNIVERSAL');",
+    "answer": "SELECT CASE store_type WHEN 1 THEN 'KINGLY' WHEN 2 THEN 'UNIVERSAL' END as store, COUNT(*) as product_count FROM products GROUP BY store_type",
+    "explanation": "This query analyzes product distribution by store type using CASE statement to convert store type codes to readable labels and counting products per store type."
+  },
+  {
+    "question": "Show all unblocked units",
+    "context": "CREATE TABLE `unit_block_lists` (`id` bigint UNSIGNED NOT NULL, `contract_id` bigint UNSIGNED DEFAULT NULL, `is_unblocked` tinyint(1) NOT NULL DEFAULT '0', `unblock_date` datetime DEFAULT NULL);",
+    "answer": "SELECT * FROM unit_block_lists WHERE is_unblocked = 1",
+    "explanation": "This query finds units that have been unblocked by filtering for is_unblocked = 1, showing units that were previously blocked but have since been cleared."
+  },
+  {
+    "question": "Calculate total fixed charges",
+    "context": "CREATE TABLE `bills` (`id` bigint UNSIGNED NOT NULL, `declared_load_charges` decimal(10,2) NOT NULL DEFAULT '0.00', `service_charge` decimal(10,2) NOT NULL DEFAULT '0.00');",
+    "answer": "SELECT SUM(declared_load_charges + service_charge) as total_fixed_charges FROM bills",
+    "explanation": "This query calculates total fixed charges by summing declared load charges and service charges across all bills, combining both fixed cost components."
+  },
+  {
+    "question": "Find all guest documents",
+    "context": "CREATE TABLE `guest_documents` (`id` bigint UNSIGNED NOT NULL, `guest_id` bigint UNSIGNED NOT NULL, `file_name` varchar(255) DEFAULT NULL);",
+    "answer": "SELECT * FROM guest_documents ORDER BY created_at DESC",
+    "explanation": "This query retrieves all guest documents ordered by creation date to show most recently uploaded documents first."
+  },
+  {
+    "question": "List violations by location",
+    "context": "CREATE TABLE `violations` (`id` bigint UNSIGNED NOT NULL, `location` varchar(500) DEFAULT NULL);",
+    "answer": "SELECT location, COUNT(*) as violation_count FROM violations WHERE location IS NOT NULL GROUP BY location ORDER BY violation_count DESC",
+    "explanation": "This query analyzes violation patterns by location, counting violations per location and ordering by count to identify high-violation areas."
+  },
+  {
+    "question": "Show all cash receipts",
+    "context": "CREATE TABLE `job_invoices` (`id` bigint UNSIGNED NOT NULL, `cash_receipt_no` varchar(255) DEFAULT NULL, `cash_receipt_file_path` varchar(255) DEFAULT NULL);",
+    "answer": "SELECT * FROM job_invoices WHERE cash_receipt_no IS NOT NULL",
+    "explanation": "This query finds job invoices with cash receipts by filtering for non-null cash receipt numbers, indicating cash payments have been processed."
+  },
+  {
+    "question": "Get employee card expiry statistics",
+    "context": "CREATE TABLE `employee_access_cards` (`id` bigint UNSIGNED NOT NULL, `expiry_date` datetime DEFAULT NULL, `status` int NOT NULL);",
+    "answer": "SELECT CASE WHEN expiry_date < NOW() THEN 'Expired' WHEN expiry_date BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 30 DAY) THEN 'Expiring Soon' ELSE 'Valid' END as status, COUNT(*) as count FROM employee_access_cards GROUP BY status",
+    "explanation": "This query categorizes employee access cards by expiry status using CASE statement with date comparisons to create expiry status categories and count cards in each category."
+  },
+  {
+    "question": "Find all bank transfers",
+    "context": "CREATE TABLE `payments` (`id` bigint UNSIGNED NOT NULL, `payment_type` int NOT NULL COMMENT '4=BANK_TRANSFER', `bank_name` varchar(255) DEFAULT NULL, `amount` decimal(10,2) NOT NULL);",
+    "answer": "SELECT * FROM payments WHERE payment_type = 4",
+    "explanation": "This query retrieves bank transfer payments by filtering for payment_type = 4, which represents bank transfer transactions according to the table comment."
+  },
+  {
+    "question": "List all material returns",
+    "context": "CREATE TABLE `product_stock_deductions` (`id` bigint UNSIGNED NOT NULL, `returned_quantity` decimal(8,3) DEFAULT NULL, `is_return` tinyint(1) NOT NULL DEFAULT '0');",
+    "answer": "SELECT * FROM product_stock_deductions WHERE is_return = 1 OR returned_quantity > 0",
+    "explanation": "This query finds material returns by filtering for either explicit return flag (is_return = 1) or positive returned quantities, capturing all return transactions."
+  },
+  {
+    "question": "Show units with TRN numbers",
+    "context": "CREATE TABLE `bills` (`id` bigint UNSIGNED NOT NULL, `trn_no` varchar(255) DEFAULT NULL, `contract_id` bigint UNSIGNED DEFAULT NULL); CREATE TABLE `contracts` (`id` bigint UNSIGNED NOT NULL, `unit_id` bigint UNSIGNED NOT NULL);",
+    "answer": "SELECT DISTINCT c.unit_id, b.trn_no FROM bills b JOIN contracts c ON b.contract_id = c.id WHERE b.trn_no IS NOT NULL",
+    "explanation": "This query finds units with TRN (Tax Registration Number) by joining bills with contracts, filtering for non-null TRN numbers, and using DISTINCT to avoid duplicate units."
+  },
+  {
+    "question": "Calculate parking subscription expiry trends",
+    "context": "CREATE TABLE `parking_subscriptions` (`id` bigint UNSIGNED NOT NULL, `subscription_expiry` date NOT NULL);",
+    "answer": "SELECT DATE_FORMAT(subscription_expiry, '%Y-%m') as expiry_month, COUNT(*) as expiring_count FROM parking_subscriptions WHERE subscription_expiry >= CURDATE() GROUP BY DATE_FORMAT(subscription_expiry, '%Y-%m') ORDER BY expiry_month",
+    "explanation": "This query shows parking subscription expiry trends by grouping future expiry dates by month and counting subscriptions expiring each month to help plan renewals."
+  },
+  {
+    "question": "Find all penalty issued violations",
+    "context": "CREATE TABLE `violations` (`id` bigint UNSIGNED NOT NULL, `violation_no` varchar(255) NOT NULL, `status` int NOT NULL DEFAULT '1' COMMENT '1=PENALTY_ISSUED');",
+    "answer": "SELECT * FROM violations WHERE status = 1",
+    "explanation": "This query retrieves violations where penalties have been issued by filtering for status = 1, which represents penalty issued status according to the table comment."
+  },
+  {
+    "question": "List all access rules for buildings",
+    "context": "CREATE TABLE `building_genetec_access_rules` (`id` bigint UNSIGNED NOT NULL, `building_id` bigint UNSIGNED NOT NULL, `genetec_access_rule_id` bigint UNSIGNED NOT NULL);",
+    "answer": "SELECT building_id, COUNT(genetec_access_rule_id) as rule_count FROM building_genetec_access_rules GROUP BY building_id",
+    "explanation": "This query counts Genetec access rules per building by grouping access rules by building_id and counting rules to show security configuration per building."
+  },
+  {
+    "question": "Show moving requests with NOC documents",
+    "context": "CREATE TABLE `moving_request_documents` (`id` bigint UNSIGNED NOT NULL, `moving_request_id` bigint UNSIGNED NOT NULL, `type` int NOT NULL COMMENT '2=OWNER_NOC');",
+    "answer": "SELECT DISTINCT moving_request_id FROM moving_request_documents WHERE type = 2",
+    "explanation": "This query finds moving requests that have owner NOC (No Objection Certificate) documents by filtering for document type = 2 and using DISTINCT to avoid duplicate requests."
+  },
+  {
+    "question": "Get complaint type suggestions",
+    "context": "CREATE TABLE `complaint_suggestions` (`id` bigint UNSIGNED NOT NULL, `complaint_type_id` bigint UNSIGNED NOT NULL, `description` text NOT NULL);",
+    "answer": "SELECT * FROM complaint_suggestions ORDER BY complaint_type_id",
+    "explanation": "This query retrieves all complaint type suggestions ordered by complaint type ID to show suggested descriptions for different complaint categories."
+  },
+  {
+    "question": "Find all staff with phone numbers",
+    "context": "CREATE TABLE `staff` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL, `phone` varchar(255) NOT NULL DEFAULT '0');",
+    "answer": "SELECT * FROM staff WHERE phone != '0'",
+    "explanation": "This query finds staff members with valid phone numbers by filtering out the default '0' value, showing staff with actual contact numbers."
+  },
+  {
+    "question": "Calculate monthly maintenance costs",
+    "context": "CREATE TABLE `building_complaint_materials` (`id` bigint UNSIGNED NOT NULL, `total_cost` decimal(10,2) DEFAULT 0.00, `created_at` timestamp NULL DEFAULT NULL);",
+    "answer": "SELECT DATE_FORMAT(created_at, '%Y-%m') as month, SUM(total_cost) as maintenance_cost FROM building_complaint_materials GROUP BY DATE_FORMAT(created_at, '%Y-%m')",
+    "explanation": "This query calculates monthly maintenance costs by grouping material costs by month using DATE_FORMAT and summing total costs to show spending trends."
+  },
+  {
+    "question": "List all floor assignments",
+    "context": "CREATE TABLE `floors` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL); CREATE TABLE `units` (`id` bigint UNSIGNED NOT NULL, `floor_id` bigint UNSIGNED DEFAULT NULL);",
+    "answer": "SELECT f.name, COUNT(u.id) as unit_count FROM floors f LEFT JOIN units u ON f.id = u.floor_id GROUP BY f.id",
+    "explanation": "This query shows floor assignments by counting units per floor using LEFT JOIN to include floors with no units and grouping by floor."
+  },
+  {
+    "question": "Show all purchased parking spaces",
+    "context": "CREATE TABLE `assigned_parkings` (`id` bigint UNSIGNED query joins assigned_access_cards with access_card_types to retrieve all active parking cards. It filters for status = 1 (ACTIVE) and card types containing 'Parking' in the name."
+  },
+  {
+    "question": "How many access card requests are pending acceptance?",
+    "context": "CREATE TABLE `access_card_requests` (`id` bigint UNSIGNED NOT NULL, `reference_no` varchar(255) NOT NULL, `status` int NOT NULL DEFAULT '1' COMMENT '1=REQUESTED, 2=ACCEPTED', `created_at` timestamp NULL DEFAULT NULL);",
+    "answer": "SELECT COUNT(*) as pending_requests FROM access_card_requests WHERE status = 1",
+    "explanation": "This query counts all access card requests with status = 1 (REQUESTED), which represents pending requests that haven't been accepted yet."
+  },
+  {
+    "question": "Find all lost parking cards with their replacement costs",
+    "context": "CREATE TABLE `access_card_request_mappings` (`id` bigint UNSIGNED NOT NULL, `is_lost_card` tinyint(1) NOT NULL DEFAULT '0', `access_card_type_id` bigint UNSIGNED NOT NULL); CREATE TABLE `access_card_types` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL, `amount` decimal(10,2) DEFAULT NULL);",
+    "answer": "SELECT acrm.*, act.name, CASE WHEN act.name LIKE '%Parking%' AND acrm.is_lost_card = 1 THEN 262.50 ELSE act.amount END as replacement_cost FROM access_card_request_mappings acrm JOIN access_card_types act ON acrm.access_card_type_id = act.id WHERE acrm.is_lost_card = 1 AND act.name LIKE '%Parking%'",
+    "explanation": "This query finds lost parking cards by joining request mappings with card types, filtering for lost cards and parking card types. It uses a CASE statement to apply a specific replacement cost of 262.50 for parking cards."
+  },
+  {
+    "question": "List all buildings in the downtown region",
+    "context": "CREATE TABLE `buildings` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL, `short_name` varchar(255) NOT NULL, `region_id` bigint UNSIGNED NOT NULL); CREATE TABLE `regions` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL);",
+    "answer": "SELECT b.* FROM buildings b JOIN regions r ON b.region_id = r.id WHERE LOWER(r.name) LIKE '%downtown%'",
+    "explanation": "This query joins buildings with regions and filters for regions containing 'downtown' in the name. The LOWER function ensures case-insensitive matching."
+  },
+  {
+    "question": "Get the total unpaid bills amount for each contract",
+    "context": "CREATE TABLE `bills` (`id` bigint UNSIGNED NOT NULL, `contract_id` bigint UNSIGNED DEFAULT NULL, `is_paid` tinyint(1) NOT NULL DEFAULT '0', `total_payable` decimal(10,2) NOT NULL DEFAULT '0.00');",
+    "answer": "SELECT contract_id, SUM(total_payable) as total_unpaid FROM bills WHERE is_paid = 0 GROUP BY contract_id",
+    "explanation": "This query sums the total_payable amounts for unpaid bills (is_paid = 0) grouped by contract_id to show outstanding amounts per contract."
+  },
+  {
+    "question": "Which units have active contracts expiring this month?",
+    "context": "CREATE TABLE `contracts` (`id` bigint UNSIGNED NOT NULL, `unit_id` bigint UNSIGNED NOT NULL, `end_date` date DEFAULT NULL, `is_active` tinyint(1) NOT NULL DEFAULT '0'); CREATE TABLE `units` (`id` bigint UNSIGNED NOT NULL, `unit_no` varchar(255) NOT NULL);",
+    "answer": "SELECT u.unit_no, c.end_date FROM contracts c JOIN units u ON c.unit_id = u.id WHERE c.is_active = 1 AND YEAR(c.end_date) = YEAR(CURDATE()) AND MONTH(c.end_date) = MONTH(CURDATE())",
+    "explanation": "This query joins contracts with units to find active contracts expiring in the current month by comparing the year and month of end_date with the current date."
+  },
+  {
+    "question": "Show me all overdue bills with tenant information",
+    "context": "CREATE TABLE `bills` (`id` bigint UNSIGNED NOT NULL, `contract_id` bigint UNSIGNED DEFAULT NULL, `is_overdue` tinyint(1) NOT NULL DEFAULT '0', `tax_invoice_due_date` date NOT NULL); CREATE TABLE `contracts` (`id` bigint UNSIGNED NOT NULL, `occupant_name` varchar(255) NOT NULL);",
+    "answer": "SELECT b.*, c.occupant_name FROM bills b JOIN contracts c ON b.contract_id = c.id WHERE b.is_overdue = 1",
+    "explanation": "This query joins bills with contracts to retrieve overdue bills along with the occupant names from the associated contracts."
+  },
+  {
+    "question": "Count emergency complaints by building",
+    "context": "CREATE TABLE `complaints` (`id` bigint UNSIGNED NOT NULL, `building_id` bigint UNSIGNED DEFAULT NULL, `is_emergency` tinyint(1) NOT NULL DEFAULT '0'); CREATE TABLE `buildings` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL);",
+    "answer": "SELECT b.name, COUNT(c.id) as emergency_count FROM complaints c JOIN buildings b ON c.building_id = b.id WHERE c.is_emergency = 1 GROUP BY b.id, b.name",
+    "explanation": "This query counts emergency complaints per building by joining complaints with buildings, filtering for emergency complaints (is_emergency = 1), and grouping by building."
+  },
+  {
+    "question": "Find all vehicles with expired insurance",
+    "context": "CREATE TABLE `vehicles` (`id` bigint UNSIGNED NOT NULL, `number_plate` varchar(255) NOT NULL, `insurance_expiry` date DEFAULT NULL, `user_id` bigint UNSIGNED NOT NULL);",
+    "answer": "SELECT * FROM vehicles WHERE insurance_expiry < CURDATE()",
+    "explanation": "This query finds vehicles with expired insurance by comparing the insurance_expiry date with the current date using CURDATE()."
+  },
+  {
+    "question": "What's the average violation amount by violation type?",
+    "context": "CREATE TABLE `violations` (`id` bigint UNSIGNED NOT NULL, `violation_description_id` bigint UNSIGNED DEFAULT NULL, `amount` double DEFAULT NULL); CREATE TABLE `violation_descriptions` (`id` bigint UNSIGNED NOT NULL, `description` text NOT NULL);",
+    "answer": "SELECT vd.description, AVG(v.amount) as avg_amount FROM violations v JOIN violation_descriptions vd ON v.violation_description_id = vd.id GROUP BY vd.id",
+    "explanation": "This query calculates the average violation amount for each violation type by joining violations with violation_descriptions and using AVG() function grouped by violation description."
+  },
+  {
+    "question": "List all parking subscriptions expiring next week",
+    "context": "CREATE TABLE `parking_subscriptions` (`id` bigint UNSIGNED NOT NULL, `user_id` bigint UNSIGNED DEFAULT NULL, `subscription_expiry` date NOT NULL, `is_expired` tinyint(1) NOT NULL DEFAULT '0');",
+    "answer": "SELECT * FROM parking_subscriptions WHERE subscription_expiry BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY) AND is_expired = 0",
+    "explanation": "This query finds parking subscriptions expiring in the next 7 days using BETWEEN with CURDATE() and DATE_ADD(), filtering for non-expired subscriptions."
+  },
+  {
+    "question": "Get maintenance job status distribution for this month",
+    "context": "CREATE TABLE `job_allocs` (`id` bigint UNSIGNED NOT NULL, `status` int NOT NULL COMMENT '1=Reported, 2=Under observation, 3=Pending, 4=Completed, 5=Closed', `created_at` timestamp NULL DEFAULT NULL);",
+    "answer": "SELECT status, COUNT(*) as count FROM job_allocs WHERE MONTH(created_at) = MONTH(CURDATE()) AND YEAR(created_at) = YEAR(CURDATE()) GROUP BY status",
+    "explanation": "This query provides a distribution of job statuses for the current month by filtering on MONTH() and YEAR() functions and grouping by status."
+  },
+  {
+    "question": "Show all units with multiple active parking spaces",
+    "context": "CREATE TABLE `assigned_parkings` (`id` bigint UNSIGNED NOT NULL, `contract_id` bigint UNSIGNED DEFAULT NULL, `unit_parking_id` bigint UNSIGNED NOT NULL, `status` int NOT NULL DEFAULT '1'); CREATE TABLE `contracts` (`id` bigint UNSIGNED NOT NULL, `unit_id` bigint UNSIGNED NOT NULL);",
+    "answer": "SELECT c.unit_id, COUNT(ap.id) as parking_count FROM assigned_parkings ap JOIN contracts c ON ap.contract_id = c.id WHERE ap.status = 2 GROUP BY c.unit_id HAVING COUNT(ap.id) > 1",
+    "explanation": "This query finds units with multiple active parking spaces by joining assigned parkings with contracts, grouping by unit_id, and using HAVING to filter for counts greater than 1."
+  },
+  {
+    "question": "Find tenants who haven't paid their deposit",
+    "context": "CREATE TABLE `contracts` (`id` bigint UNSIGNED NOT NULL, `occupant_name` varchar(255) NOT NULL, `is_deposit_paid` tinyint(1) NOT NULL DEFAULT '0', `contractable_type` varchar(255) DEFAULT NULL);",
+    "answer": "SELECT occupant_name, contract_no FROM contracts WHERE is_deposit_paid = 0 AND contractable_type LIKE '%Tenant%'",
+    "explanation": "This query finds tenant contracts where the deposit hasn't been paid by filtering for is_deposit_paid = 0 and contractable_type containing 'Tenant'."
+  },
+  {
+    "question": "Calculate total revenue from access card sales this year",
+    "context": "CREATE TABLE `assigned_access_cards` (`id` bigint UNSIGNED NOT NULL, `amount` decimal(10,2) NOT NULL DEFAULT '0.00', `created_at` timestamp NULL DEFAULT NULL);",
+    "answer": "SELECT SUM(amount) as total_revenue FROM assigned_access_cards WHERE YEAR(created_at) = YEAR(CURDATE())",
+    "explanation": "This query calculates the total revenue from access card sales for the current year by summing the amount field and filtering by the current year using YEAR() function."
+  },
+  {
+    "question": "Which buildings have the most complaints?",
+    "context": "CREATE TABLE `complaints` (`id` bigint UNSIGNED NOT NULL, `building_id` bigint UNSIGNED DEFAULT NULL); CREATE TABLE `buildings` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL);",
+    "answer": "SELECT b.name, COUNT(c.id) as complaint_count FROM complaints c JOIN buildings b ON c.building_id = b.id GROUP BY b.id ORDER BY complaint_count DESC LIMIT 10",
+    "explanation": "This query identifies buildings with the highest complaint counts by joining complaints with buildings, grouping by building, ordering by count in descending order, and limiting to top 10."
+  },
+  {
+    "question": "List all active staff members with their assigned buildings",
+    "context": "CREATE TABLE `staff` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL); CREATE TABLE `staff_buildings` (`id` bigint UNSIGNED NOT NULL, `staff_id` bigint UNSIGNED NOT NULL, `building_id` bigint UNSIGNED NOT NULL); CREATE TABLE `buildings` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL);",
+    "answer": "SELECT s.name as staff_name, GROUP_CONCAT(b.name) as buildings FROM staff s JOIN staff_buildings sb ON s.id = sb.staff_id JOIN buildings b ON sb.building_id = b.id GROUP BY s.id",
+    "explanation": "This query shows staff members and their assigned buildings by joining staff, staff_buildings, and buildings tables. GROUP_CONCAT combines multiple building names into a single comma-separated string per staff member."
+  },
+  {
+    "question": "Find all unpaid violations older than 30 days",
+    "context": "CREATE TABLE `violations` (`id` bigint UNSIGNED NOT NULL, `violation_no` varchar(255) NOT NULL, `is_paid` tinyint(1) NOT NULL DEFAULT '0', `violation_date` datetime DEFAULT NULL, `amount` double DEFAULT NULL);",
+    "answer": "SELECT * FROM violations WHERE is_paid = 0 AND violation_date < DATE_SUB(CURDATE(), INTERVAL 30 DAY)",
+    "explanation": "This query finds unpaid violations from more than 30 days ago by filtering for is_paid = 0 and using DATE_SUB to compare violation_date with a date 30 days before today."
+  },
+  {
+    "question": "Show moving requests scheduled for tomorrow",
+    "context": "CREATE TABLE `moving_requests` (`id` bigint UNSIGNED NOT NULL, `ref_no` int NOT NULL, `moving_date` date NOT NULL, `status` int NOT NULL DEFAULT '1');",
+    "answer": "SELECT * FROM moving_requests WHERE moving_date = DATE_ADD(CURDATE(), INTERVAL 1 DAY) AND status IN (1, 2)",
+    "explanation": "This query finds moving requests scheduled for tomorrow by using DATE_ADD to get tomorrow's date and filtering for active statuses (1 and 2)."
+  },
+  {
+    "question": "Get the count of each access card type issued",
+    "context": "CREATE TABLE `assigned_access_cards` (`id` bigint UNSIGNED NOT NULL, `access_card_type_id` bigint UNSIGNED DEFAULT NULL); CREATE TABLE `access_card_types` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL);",
+    "answer": "SELECT act.name, COUNT(aac.id) as issued_count FROM access_card_types act LEFT JOIN assigned_access_cards aac ON act.id = aac.access_card_type_id GROUP BY act.id",
+    "explanation": "This query counts how many cards of each type have been issued using LEFT JOIN to include card types with zero issued cards and GROUP BY to aggregate counts per card type."
+  },
+  {
+    "question": "Which contracts have ejari expiring within 60 days?",
+    "context": "CREATE TABLE `contracts` (`id` bigint UNSIGNED NOT NULL, `contract_no` varchar(255) NOT NULL, `ejari_expiry` date DEFAULT NULL, `occupant_name` varchar(255) NOT NULL);",
+    "answer": "SELECT contract_no, occupant_name, ejari_expiry FROM contracts WHERE ejari_expiry BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 60 DAY)",
+    "explanation": "This query finds contracts with ejari documents expiring in the next 60 days using BETWEEN to check if ejari_expiry falls within the date range from today to 60 days from now."
+  },
+  {
+    "question": "Calculate monthly parking subscription revenue",
+    "context": "CREATE TABLE `parking_subscriptions` (`id` bigint UNSIGNED NOT NULL, `subscription_amount` decimal(8,2) NOT NULL, `created_at` timestamp NULL DEFAULT NULL);",
+    "answer": "SELECT DATE_FORMAT(created_at, '%Y-%m') as month, SUM(subscription_amount) as revenue FROM parking_subscriptions GROUP BY DATE_FORMAT(created_at, '%Y-%m') ORDER BY month DESC",
+    "explanation": "This query calculates monthly parking subscription revenue by using DATE_FORMAT to extract year-month from created_at, summing subscription amounts, and grouping by month."
+  },
+  {
+    "question": "Find all vacant units in building ESR-1",
+    "context": "CREATE TABLE `units` (`id` bigint UNSIGNED NOT NULL, `unit_no` varchar(255) NOT NULL, `is_occupied` tinyint(1) NOT NULL DEFAULT '0', `building_id` bigint UNSIGNED NOT NULL); CREATE TABLE `buildings` (`id` bigint UNSIGNED NOT NULL, `short_name` varchar(255) NOT NULL);",
+    "answer": "SELECT u.* FROM units u JOIN buildings b ON u.building_id = b.id WHERE u.is_occupied = 0 AND b.short_name = 'ESR-1'",
+    "explanation": "This query finds vacant units in a specific building by joining units with buildings, filtering for unoccupied units (is_occupied = 0) and the specific building short name."
+  },
+  {
+    "question": "List all guest registrations for this week",
+    "context": "CREATE TABLE `guests` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL, `check_in` date NOT NULL, `check_out` date NOT NULL, `status` int NOT NULL DEFAULT '1');",
+    "answer": "SELECT * FROM guests WHERE check_in BETWEEN DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY) AND DATE_ADD(DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY), INTERVAL 6 DAY)",
+    "explanation": "This query finds guest registrations for the current week by calculating the start of the week using WEEKDAY() function and creating a 7-day range from Monday to Sunday."
+  },
+  {
+    "question": "Get electrical complaints that are still pending",
+    "context": "CREATE TABLE `complaints` (`id` bigint UNSIGNED NOT NULL, `complaint_type_id` bigint UNSIGNED NOT NULL, `description` text NOT NULL); CREATE TABLE `complaint_types` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL); CREATE TABLE `job_allocs` (`id` bigint UNSIGNED NOT NULL, `joballocable_id` int NOT NULL, `status` int NOT NULL);",
+    "answer": "SELECT c.*, ct.name FROM complaints c JOIN complaint_types ct ON c.complaint_type_id = ct.id JOIN job_allocs ja ON ja.joballocable_id = c.id WHERE ct.name LIKE '%Electrical%' AND ja.status = 3",
+    "explanation": "This query finds pending electrical complaints by joining complaints, complaint_types, and job_allocs tables, filtering for electrical complaint types and pending status (3)."
+  },
+  {
+    "question": "Show payment history for contract CNT-2024-00123",
+    "context": "CREATE TABLE `payments` (`id` bigint UNSIGNED NOT NULL, `contract_id` bigint UNSIGNED DEFAULT NULL, `amount` decimal(10,2) NOT NULL, `payment_type` int NOT NULL, `created_at` timestamp NULL DEFAULT NULL); CREATE TABLE `contracts` (`id` bigint UNSIGNED NOT NULL, `contract_no` varchar(255) NOT NULL);",
+    "answer": "SELECT p.* FROM payments p JOIN contracts c ON p.contract_id = c.id WHERE c.contract_no = 'CNT-2024-00123' ORDER BY p.created_at DESC",
+    "explanation": "This query retrieves payment history for a specific contract by joining payments with contracts table, filtering by contract number, and ordering by creation date in descending order."
+  },
+  {
+    "question": "Count active vs inactive employee access cards",
+    "context": "CREATE TABLE `employee_access_cards` (`id` bigint UNSIGNED NOT NULL, `status` int NOT NULL COMMENT '1=Active, 2=Inactive', `employee_name` varchar(255) NOT NULL);",
+    "answer": "SELECT CASE WHEN status = 1 THEN 'Active' ELSE 'Inactive' END as card_status, COUNT(*) as count FROM employee_access_cards GROUP BY status",
+    "explanation": "This query counts employee access cards by status using a CASE statement to convert numeric status codes to readable labels and GROUP BY to aggregate counts."
+  },
+  {
+    "question": "Find all units with service charges due this quarter",
+    "context": "CREATE TABLE `service_charges` (`id` bigint UNSIGNED NOT NULL, `unit_id` bigint UNSIGNED NOT NULL, `period` int NOT NULL, `year` varchar(255) NOT NULL, `is_paid` tinyint(1) NOT NULL DEFAULT '0');",
+    "answer": "SELECT DISTINCT unit_id FROM service_charges WHERE year = YEAR(CURDATE()) AND period = QUARTER(CURDATE()) AND is_paid = 0",
+    "explanation": "This query finds units with unpaid service charges for the current quarter by comparing year and period with current date functions and filtering for unpaid charges."
+  },
+  {
+    "question": "List top 5 engineers by completed jobs",
+    "context": "CREATE TABLE `job_allocs` (`id` bigint UNSIGNED NOT NULL, `cluster_engineer_id` bigint UNSIGNED DEFAULT NULL, `status` int NOT NULL); CREATE TABLE `cluster_engineers` (`id` bigint UNSIGNED NOT NULL, `staff_id` bigint UNSIGNED NOT NULL); CREATE TABLE `staff` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL);",
+    "answer": "SELECT s.name, COUNT(ja.id) as completed_jobs FROM job_allocs ja JOIN cluster_engineers ce ON ja.cluster_engineer_id = ce.id JOIN staff s ON ce.staff_id = s.id WHERE ja.status = 4 GROUP BY s.id ORDER BY completed_jobs DESC LIMIT 5",
+    "explanation": "This query ranks engineers by completed jobs through a three-table join, filtering for completed status (4), grouping by staff member, ordering by job count, and limiting to top 5."
+  },
+  {
+    "question": "Get all access cards expiring next month",
+    "context": "CREATE TABLE `assigned_access_cards` (`id` bigint UNSIGNED NOT NULL, `card_id` varchar(255) NOT NULL, `expiry_date` datetime DEFAULT NULL, `status` int DEFAULT '1');",
+    "answer": "SELECT * FROM assigned_access_cards WHERE status = 1 AND expiry_date BETWEEN DATE_ADD(CURDATE(), INTERVAL 1 MONTH) AND DATE_ADD(CURDATE(), INTERVAL 2 MONTH)",
+    "explanation": "This query finds active access cards expiring next month by filtering for active status and using DATE_ADD to create a date range for the next month."
+  },
+  {
+    "question": "Show buildings with AC bill subscription IDs",
+    "context": "CREATE TABLE `building_subid` (`id` bigint UNSIGNED NOT NULL, `sub_id` varchar(255) NOT NULL, `building_id` bigint UNSIGNED NOT NULL, `charge_type` bigint UNSIGNED NOT NULL); CREATE TABLE `buildings` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL); CREATE TABLE `charge_types` (`id` bigint UNSIGNED NOT NULL, `charge_type` varchar(255) NOT NULL);",
+    "answer": "SELECT b.name, bs.sub_id FROM building_subid bs JOIN buildings b ON bs.building_id = b.id JOIN charge_types ct ON bs.charge_type = ct.id WHERE ct.charge_type = 'Ac Bill'",
+    "explanation": "This query finds buildings with AC bill subscription IDs by joining building_subid, buildings, and charge_types tables, filtering for 'Ac Bill' charge type."
+  },
+  {
+    "question": "Calculate total deposits not yet refunded",
+    "context": "CREATE TABLE `deposits` (`id` bigint UNSIGNED NOT NULL, `amount` double(8,2) NOT NULL, `status` int NOT NULL DEFAULT '1' COMMENT '1=Not Refunded, 2=Refunded');",
+    "answer": "SELECT SUM(amount) as total_deposits FROM deposits WHERE status = 1",
+    "explanation": "This query calculates the total amount of deposits that haven't been refunded by summing amounts where status = 1 (Not Refunded)."
+  },
+  {
+    "question": "Find contracts with both parking and door access cards",
+    "context": "CREATE TABLE `assigned_access_cards` (`id` bigint UNSIGNED NOT NULL, `contract_id` bigint UNSIGNED DEFAULT NULL, `access_card_type_id` bigint UNSIGNED DEFAULT NULL); CREATE TABLE `access_card_types` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL);",
+    "answer": "SELECT contract_id FROM assigned_access_cards aac JOIN access_card_types act ON aac.access_card_type_id = act.id WHERE act.name IN ('Parking Card', 'Door Card') GROUP BY contract_id HAVING COUNT(DISTINCT act.name) = 2",
+    "explanation": "This query finds contracts that have both parking and door access cards by filtering for these card types, grouping by contract, and using HAVING to ensure exactly 2 distinct card types."
+  },
+  {
+    "question": "List all failed payments from last month",
+    "context": "CREATE TABLE `failed_payments` (`id` bigint UNSIGNED NOT NULL, `amount` double NOT NULL, `failed_message` varchar(255) DEFAULT NULL, `created_at` timestamp NULL DEFAULT NULL);",
+    "answer": "SELECT * FROM failed_payments WHERE MONTH(created_at) = MONTH(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)) AND YEAR(created_at) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 MONTH))",
+    "explanation": "This query retrieves failed payments from the previous month by using DATE_SUB to get last month's date and comparing both MONTH() and YEAR() to ensure correct month selection across year boundaries."
+  },
+  {
+    "question": "Get occupancy rate by building",
+    "context": "CREATE TABLE `units` (`id` bigint UNSIGNED NOT NULL, `building_id` bigint UNSIGNED NOT NULL, `is_occupied` tinyint(1) NOT NULL DEFAULT '0'); CREATE TABLE `buildings` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL);",
+    "answer": "SELECT b.name, COUNT(CASE WHEN u.is_occupied = 1 THEN 1 END) * 100.0 / COUNT(*) as occupancy_rate FROM units u JOIN buildings b ON u.building_id = b.id GROUP BY b.id",
+    "explanation": "This query calculates occupancy rates by building using conditional counting with CASE to count occupied units, dividing by total units, and multiplying by 100 for percentage."
+  },
+  {
+    "question": "Show all incident reports with commitment letters pending",
+    "context": "CREATE TABLE `incident_reports` (`id` bigint UNSIGNED NOT NULL, `incident_no` varchar(255) NOT NULL, `status` int NOT NULL DEFAULT '1'); CREATE TABLE `commitment_reports` (`id` bigint UNSIGNED NOT NULL, `incident_report_id` bigint UNSIGNED NOT NULL, `status` tinyint(1) NOT NULL DEFAULT '0');",
+    "answer": "SELECT ir.* FROM incident_reports ir JOIN commitment_reports cr ON ir.id = cr.incident_report_id WHERE cr.status = 0",
+    "explanation": "This query finds incident reports that have pending commitment letters by joining with commitment_reports table and filtering for status = 0 (pending)."
+  },
+  {
+    "question": "Find tenants with multiple contracts",
+    "context": "CREATE TABLE `contracts` (`id` bigint UNSIGNED NOT NULL, `contractable_id` int DEFAULT NULL, `contractable_type` varchar(255) DEFAULT NULL); CREATE TABLE `tenants` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL);",
+    "answer": "SELECT t.name, COUNT(c.id) as contract_count FROM contracts c JOIN tenants t ON c.contractable_id = t.id WHERE c.contractable_type LIKE '%Tenant%' GROUP BY t.id HAVING COUNT(c.id) > 1",
+    "explanation": "This query finds tenants with multiple contracts by joining contracts with tenants, filtering for tenant contract types, grouping by tenant, and using HAVING to filter for counts greater than 1."
+  },
+  {
+    "question": "List all products below reorder threshold",
+    "context": "CREATE TABLE `product_stocks` (`id` bigint UNSIGNED NOT NULL, `product_id` bigint UNSIGNED NOT NULL, `available_stock` decimal(8,3) NOT NULL DEFAULT '0.000', `reorder_threshold` int NOT NULL DEFAULT '10'); CREATE TABLE `products` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL);",
+    "answer": "SELECT p.name, ps.available_stock, ps.reorder_threshold FROM product_stocks ps JOIN products p ON ps.product_id = p.id WHERE ps.available_stock < ps.reorder_threshold",
+    "explanation": "This query identifies products that need reordering by joining product_stocks with products and filtering where available_stock is below the reorder_threshold."
+  },
+  {
+    "question": "Get complaint resolution time statistics",
+    "context": "CREATE TABLE `complaints` (`id` bigint UNSIGNED NOT NULL, `created_at` timestamp NULL DEFAULT NULL); CREATE TABLE `job_allocs` (`id` bigint UNSIGNED NOT NULL, `joballocable_id` int NOT NULL, `date_completed` date DEFAULT NULL, `status` int NOT NULL);",
+    "answer": "SELECT AVG(DATEDIFF(ja.date_completed, c.created_at)) as avg_resolution_days FROM complaints c JOIN job_allocs ja ON ja.joballocable_id = c.id WHERE ja.status = 4 AND ja.date_completed IS NOT NULL",
+    "explanation": "This query calculates average complaint resolution time using DATEDIFF to find days between complaint creation and job completion, filtering for completed jobs with valid completion dates."
+  },
+  {
+    "question": "Show all active parking subscriptions with user details",
+    "context": "CREATE TABLE `parking_subscriptions` (`id` bigint UNSIGNED NOT NULL, `user_id` bigint UNSIGNED DEFAULT NULL, `is_expired` tinyint(1) NOT NULL DEFAULT '0'); CREATE TABLE `users` (`id` bigint UNSIGNED NOT NULL, `email` varchar(255) NOT NULL);",
+    "answer": "SELECT ps.*, u.email FROM parking_subscriptions ps JOIN users u ON ps.user_id = u.id WHERE ps.is_expired = 0",
+    "explanation": "This query retrieves active parking subscriptions along with user email addresses by joining parking_subscriptions with users and filtering for non-expired subscriptions."
+  },
+  {
+    "question": "Find units with the highest utility bills",
+    "context": "CREATE TABLE `bills` (`id` bigint UNSIGNED NOT NULL, `contract_id` bigint UNSIGNED DEFAULT NULL, `total_payable` decimal(10,2) NOT NULL); CREATE TABLE `contracts` (`id` bigint UNSIGNED NOT NULL, `unit_id` bigint UNSIGNED NOT NULL); CREATE TABLE `units` (`id` bigint UNSIGNED NOT NULL, `unit_no` varchar(255) NOT NULL);",
+    "answer": "SELECT u.unit_no, SUM(b.total_payable) as total_bills FROM bills b JOIN contracts c ON b.contract_id = c.id JOIN units u ON c.unit_id = u.id GROUP BY u.id ORDER BY total_bills DESC LIMIT 10",
+    "explanation": "This query identifies units with highest utility bills by joining bills, contracts, and units tables, summing total_payable amounts per unit, and ordering by total bills descending to get top 10."
+  },
+  {
+    "question": "List all payment refunds processed this year",
+    "context": "CREATE TABLE `payment_refunds` (`id` bigint UNSIGNED NOT NULL, `amount_refunded` decimal(10,2) NOT NULL, `refunded_on` timestamp NOT NULL, `remarks` text);",
+    "answer": "SELECT * FROM payment_refunds WHERE YEAR(refunded_on) = YEAR(CURDATE()) ORDER BY refunded_on DESC",
+    "explanation": "This query retrieves all payment refunds processed in the current year by filtering the refunded_on date using YEAR() function and ordering by refund date in descending order."
+  },
+  {
+    "question": "Get cluster-wise engineer distribution",
+    "context": "CREATE TABLE `cluster_engineers` (`id` bigint UNSIGNED NOT NULL, `cluster_type_id` bigint UNSIGNED NOT NULL, `staff_id` bigint UNSIGNED NOT NULL, `is_active` tinyint(1) NOT NULL DEFAULT '1'); CREATE TABLE `cluster_types` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL);",
+    "answer": "SELECT ct.name, COUNT(ce.id) as engineer_count FROM cluster_types ct LEFT JOIN cluster_engineers ce ON ct.id = ce.cluster_type_id AND ce.is_active = 1 GROUP BY ct.id",
+    "explanation": "This query shows the distribution of active engineers across cluster types using LEFT JOIN to include clusters with zero engineers and filtering for active engineers only."
+  },
+  {
+    "question": "Show all notices sent to building residents",
+    "context": "CREATE TABLE `notices` (`id` bigint UNSIGNED NOT NULL, `notice_entity_id` bigint UNSIGNED NOT NULL, `mark_as_read` tinyint(1) NOT NULL DEFAULT '0'); CREATE TABLE `notice_entities` (`id` bigint UNSIGNED NOT NULL, `title` varchar(255) NOT NULL, `type` int NOT NULL);",
+    "answer": "SELECT ne.title, COUNT(n.id) as total_sent, SUM(n.mark_as_read) as total_read FROM notices n JOIN notice_entities ne ON n.notice_entity_id = ne.id WHERE ne.type = 1 GROUP BY ne.id",
+    "explanation": "This query shows notice statistics for building residents by joining notices with notice_entities, filtering for type 1 (building notices), and calculating total sent and read counts."
+  },
+  {
+    "question": "Find vehicles registered in Dubai",
+    "context": "CREATE TABLE `vehicles` (`id` bigint UNSIGNED NOT NULL, `number_plate` varchar(255) NOT NULL, `city_id` bigint UNSIGNED NOT NULL); CREATE TABLE `cities` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL);",
+    "answer": "SELECT v.* FROM vehicles v JOIN cities c ON v.city_id = c.id WHERE c.name = 'Dubai'",
+    "explanation": "This query finds vehicles registered in Dubai by joining vehicles with cities table and filtering for the specific city name."
+  },
+  {
+    "question": "Calculate monthly AC consumption charges",
+    "context": "CREATE TABLE `bills` (`id` bigint UNSIGNED NOT NULL, `consumption_charge` decimal(10,2) NOT NULL DEFAULT '0.00', `bill_of` date DEFAULT NULL);",
+    "answer": "SELECT DATE_FORMAT(bill_of, '%Y-%m') as month, SUM(consumption_charge) as total_consumption FROM bills WHERE bill_of IS NOT NULL GROUP BY DATE_FORMAT(bill_of, '%Y-%m')",
+    "explanation": "This query calculates monthly AC consumption charges by using DATE_FORMAT to extract year-month from bill_of date, summing consumption charges, and grouping by month."
+  },
+  {
+    "question": "List all quotations pending approval",
+    "context": "CREATE TABLE `job_quotation` (`id` bigint UNSIGNED NOT NULL, `quote_no` varchar(255) NOT NULL, `status` int NOT NULL DEFAULT '1' COMMENT '1=Quote Issued, 2=Quote Paid, 3=Quote Sent', `amount` decimal(10,2) NOT NULL);",
+    "answer": "SELECT * FROM job_quotation WHERE status = 1 ORDER BY created_at DESC",
+    "explanation": "This query retrieves quotations pending approval by filtering for status = 1 (Quote Issued) and ordering by creation date to show most recent first."
+  },
+  {
+    "question": "Get feedback response rate by type",
+    "context": "CREATE TABLE `feedback` (`id` bigint UNSIGNED NOT NULL, `feedback_type_id` bigint UNSIGNED NOT NULL, `status` int NOT NULL DEFAULT '1' COMMENT '1=NEW, 2=REPLIED'); CREATE TABLE `feedback_types` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL);",
+    "answer": "SELECT ft.name, COUNT(f.id) as total, SUM(CASE WHEN f.status = 2 THEN 1 ELSE 0 END) as replied, (SUM(CASE WHEN f.status = 2 THEN 1 ELSE 0 END) * 100.0 / COUNT(f.id)) as response_rate FROM feedback f JOIN feedback_types ft ON f.feedback_type_id = ft.id GROUP BY ft.id",
+    "explanation": "This query calculates feedback response rates by type using conditional aggregation with CASE statements to count replied feedback and calculate percentage response rates."
+  },
+  {
+    "question": "Show all units blocked due to violations",
+    "context": "CREATE TABLE `unit_block_lists` (`id` bigint UNSIGNED NOT NULL, `contract_id` bigint UNSIGNED DEFAULT NULL, `is_blocked` tinyint(1) NOT NULL DEFAULT '0', `blockable_type` varchar(255) DEFAULT NULL); CREATE TABLE `contracts` (`id` bigint UNSIGNED NOT NULL, `unit_id` bigint UNSIGNED NOT NULL);",
+    "answer": "SELECT DISTINCT c.unit_id FROM unit_block_lists ubl JOIN contracts c ON ubl.contract_id = c.id WHERE ubl.is_blocked = 1 AND ubl.blockable_type LIKE '%IncidentReport%'",
+    "explanation": "This query finds units blocked due to incident reports by joining unit_block_lists with contracts, filtering for blocked status and incident report block types, using DISTINCT to avoid duplicates."
+  },
+  {
+    "question": "Find expired employee access cards",
+    "context": "CREATE TABLE `employee_access_cards` (`id` bigint UNSIGNED NOT NULL, `employee_name` varchar(255) NOT NULL, `expiry_date` datetime DEFAULT NULL, `status` int NOT NULL);",
+    "answer": "SELECT * FROM employee_access_cards WHERE expiry_date < NOW() AND status = 1",
+    "explanation": "This query finds expired employee access cards by comparing expiry_date with current timestamp using NOW() function and filtering for active status."
+  },
+  {
+    "question": "Calculate total material costs for completed jobs",
+    "context": "CREATE TABLE `building_complaint_materials` (`id` bigint UNSIGNED NOT NULL, `job_alloc_id` bigint UNSIGNED NOT NULL, `total_cost` decimal(10,2) DEFAULT 0.00); CREATE TABLE `job_allocs` (`id` bigint UNSIGNED NOT NULL, `status` int NOT NULL);",
+    "answer": "SELECT SUM(bcm.total_cost) as total_material_cost FROM building_complaint_materials bcm JOIN job_allocs ja ON bcm.job_alloc_id = ja.id WHERE ja.status = 4",
+    "explanation": "This query calculates the total material costs for completed jobs by joining material costs with job allocations and filtering for completed status (4)."
+  },
+  {
+    "question": "List all 2-bedroom units available for rent",
+    "context": "CREATE TABLE `units` (`id` bigint UNSIGNED NOT NULL, `unit_no` varchar(255) NOT NULL, `unit_type_id` bigint UNSIGNED DEFAULT NULL, `is_occupied` tinyint(1) NOT NULL DEFAULT '0'); CREATE TABLE `unit_types` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL);",
+    "answer": "SELECT u.* FROM units u JOIN unit_types ut ON u.unit_type_id = ut.id WHERE ut.name = '2-BED' AND u.is_occupied = 0",
+    "explanation": "This query finds available 2-bedroom units by joining units with unit_types, filtering for '2-BED' type and unoccupied status (is_occupied = 0)."
+  },
+  {
+    "question": "Get violation payment compliance rate",
+    "context": "CREATE TABLE `violations` (`id` bigint UNSIGNED NOT NULL, `is_paid` tinyint(1) NOT NULL DEFAULT '0', `status` int NOT NULL DEFAULT '1');",
+    "answer": "SELECT COUNT(CASE WHEN is_paid = 1 THEN 1 END) * 100.0 / COUNT(*) as compliance_rate FROM violations WHERE status NOT IN (6, 7, 8)",
+    "explanation": "This query calculates violation payment compliance rate by using conditional counting to find paid violations, excluding void, warning, and waived violations from the calculation."
+  },
+  {
+    "question": "Show all active moving requests for this week",
+    "context": "CREATE TABLE `moving_requests` (`id` bigint UNSIGNED NOT NULL, `ref_no` int NOT NULL, `moving_date` date NOT NULL, `status` int NOT NULL DEFAULT '1', `moving_type` int NOT NULL);",
+    "answer": "SELECT *, CASE WHEN moving_type = 1 THEN 'Moving In' ELSE 'Moving Out' END as type FROM moving_requests WHERE moving_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY) AND status = 2",
+    "explanation": "This query shows active moving requests for the current week using date range filtering and a CASE statement to convert moving_type codes to readable labels."
+  },
+  {
+    "question": "Find contracts without any documents uploaded",
+    "context": "CREATE TABLE `contracts` (`id` bigint UNSIGNED NOT NULL, `contract_no` varchar(255) NOT NULL); CREATE TABLE `contract_documents` (`id` bigint UNSIGNED NOT NULL, `contract_id` bigint UNSIGNED NOT NULL);",
+    "answer": "SELECT c.* FROM contracts c LEFT JOIN contract_documents cd ON c.id = cd.contract_id WHERE cd.id IS NULL",
+    "explanation": "This query finds contracts without documents using LEFT JOIN and filtering for NULL values in the joined table, which indicates no matching documents exist."
+  },
+  {
+    "question": "Calculate average deposit amount by unit type",
+    "context": "CREATE TABLE `deposits` (`id` bigint UNSIGNED NOT NULL, `contract_id` bigint UNSIGNED NOT NULL, `amount` double(8,2) NOT NULL); CREATE TABLE `contracts` (`id` bigint UNSIGNED NOT NULL, `unit_id` bigint UNSIGNED NOT NULL); CREATE TABLE `units` (`id` bigint UNSIGNED NOT NULL, `unit_type_id` bigint UNSIGNED DEFAULT NULL); CREATE TABLE `unit_types` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL);",
+    "answer": "SELECT ut.name, AVG(d.amount) as avg_deposit FROM deposits d JOIN contracts c ON d.contract_id = c.id JOIN units u ON c.unit_id = u.id JOIN unit_types ut ON u.unit_type_id = ut.id GROUP BY ut.id",
+    "explanation": "This query calculates average deposit amounts by unit type through a four-table join from deposits to unit_types, using AVG() function and grouping by unit type."
+  },
+  {
+    "question": "List all suppliers with recent purchases",
+    "context": "CREATE TABLE `suppliers` (`id` bigint UNSIGNED NOT NULL, `company` varchar(255) NOT NULL); CREATE TABLE `product_purchase_history` (`id` bigint UNSIGNED NOT NULL, `vendor_name` varchar(255) DEFAULT NULL, `purchase_date` date DEFAULT NULL);",
+    "answer": "SELECT DISTINCT s.* FROM suppliers s JOIN product_purchase_history pph ON s.company = pph.vendor_name WHERE pph.purchase_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)",
+    "explanation": "This query finds suppliers with recent purchases (last 30 days) by joining suppliers with purchase history on company/vendor names and using DATE_SUB to filter recent dates."
+  },
+  {
+    "question": "Get complaint types with average resolution time",
+    "context": "CREATE TABLE `complaints` (`id` bigint UNSIGNED NOT NULL, `complaint_type_id` bigint UNSIGNED NOT NULL, `created_at` timestamp NULL DEFAULT NULL); CREATE TABLE `complaint_types` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL); CREATE TABLE `job_allocs` (`id` bigint UNSIGNED NOT NULL, `joballocable_id` int NOT NULL, `date_completed` date DEFAULT NULL);",
+    "answer": "SELECT ct.name, AVG(DATEDIFF(ja.date_completed, c.created_at)) as avg_days FROM complaints c JOIN complaint_types ct ON c.complaint_type_id = ct.id JOIN job_allocs ja ON ja.joballocable_id = c.id WHERE ja.date_completed IS NOT NULL GROUP BY ct.id",
+    "explanation": "This query calculates average resolution time by complaint type using DATEDIFF between complaint creation and job completion dates, grouped by complaint type."
+  },
+  {
+    "question": "Show buildings with most vacant parking spaces",
+    "context": "CREATE TABLE `unit_parkings` (`id` bigint UNSIGNED NOT NULL, `building_id` bigint UNSIGNED DEFAULT NULL, `is_occupied` tinyint(1) NOT NULL DEFAULT '0'); CREATE TABLE `buildings` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL);",
+    "answer": "SELECT b.name, COUNT(up.id) as vacant_spaces FROM unit_parkings up JOIN buildings b ON up.building_id = b.id WHERE up.is_occupied = 0 GROUP BY b.id ORDER BY vacant_spaces DESC",
+    "explanation": "This query identifies buildings with the most vacant parking spaces by counting unoccupied parking spaces per building and ordering by count in descending order."
+  },
+  {
+    "question": "Find all Genetec access rules for a specific building",
+    "context": "CREATE TABLE `building_genetec_access_rules` (`id` bigint UNSIGNED NOT NULL, `building_id` bigint UNSIGNED NOT NULL, `genetec_access_rule_id` bigint UNSIGNED NOT NULL); CREATE TABLE `buildings` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL);",
+    "answer": "SELECT bgar.* FROM building_genetec_access_rules bgar JOIN buildings b ON bgar.building_id = b.id WHERE b.name = 'Al Bateen Tower'",
+    "explanation": "This query retrieves Genetec access rules for a specific building by joining building access rules with buildings table and filtering by building name."
+  },
+  {
+    "question": "Calculate total VAT collected this month",
+    "context": "CREATE TABLE `bills` (`id` bigint UNSIGNED NOT NULL, `vat` decimal(10,2) NOT NULL DEFAULT '0.00', `is_paid` tinyint(1) NOT NULL DEFAULT '0', `paid_on` date DEFAULT NULL);",
+    "answer": "SELECT SUM(vat) as total_vat FROM bills WHERE is_paid = 1 AND MONTH(paid_on) = MONTH(CURDATE()) AND YEAR(paid_on) = YEAR(CURDATE())",
+    "explanation": "This query calculates total VAT collected in the current month by summing VAT amounts from paid bills and filtering by current month and year using MONTH() and YEAR() functions."
+  },
+  {
+    "question": "List owners with multiple properties",
+    "context": "CREATE TABLE `contracts` (`id` bigint UNSIGNED NOT NULL, `contractable_id` int DEFAULT NULL, `contractable_type` varchar(255) DEFAULT NULL, `unit_id` bigint UNSIGNED NOT NULL); CREATE TABLE `owners` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL);",
+    "answer": "SELECT o.name, COUNT(DISTINCT c.unit_id) as property_count FROM contracts c JOIN owners o ON c.contractable_id = o.id WHERE c.contractable_type LIKE '%Owner%' GROUP BY o.id HAVING property_count > 1",
+    "explanation": "This query finds owners with multiple properties by joining contracts with owners, counting distinct units per owner, and using HAVING to filter for owners with more than one property."
+  },
+  {
+    "question": "Show all payment splits by charge type",
+    "context": "CREATE TABLE `split_charge_list` (`id` bigint UNSIGNED NOT NULL, `charge_type` bigint UNSIGNED NOT NULL, `amount` decimal(8,2) NOT NULL); CREATE TABLE `charge_types` (`id` bigint UNSIGNED NOT NULL, `charge_type` varchar(255) NOT NULL);",
+    "answer": "SELECT ct.charge_type, SUM(scl.amount) as total_amount FROM split_charge_list scl JOIN charge_types ct ON scl.charge_type = ct.id GROUP BY ct.id",
+    "explanation": "This query shows payment splits by charge type by joining split_charge_list with charge_types and summing amounts for each charge type."
+  },
+  {
+    "question": "Find staff members assigned to multiple buildings",
+    "context": "CREATE TABLE `staff_buildings` (`id` bigint UNSIGNED NOT NULL, `staff_id` bigint UNSIGNED NOT NULL, `building_id` bigint UNSIGNED NOT NULL); CREATE TABLE `staff` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL);",
+    "answer": "SELECT s.name, COUNT(sb.building_id) as building_count FROM staff s JOIN staff_buildings sb ON s.id = sb.staff_id GROUP BY s.id HAVING building_count > 1",
+    "explanation": "This query identifies staff members assigned to multiple buildings by counting building assignments per staff member and using HAVING to filter for counts greater than 1."
+  },
+  {
+    "question": "Get product usage statistics by building",
+    "context": "CREATE TABLE `product_stock_deductions` (`id` bigint UNSIGNED NOT NULL, `product_id` bigint UNSIGNED NOT NULL, `building_id` bigint UNSIGNED NOT NULL, `deducted_quantity` decimal(8,3) NOT NULL); CREATE TABLE `buildings` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL); CREATE TABLE `products` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL);",
+    "answer": "SELECT b.name as building, p.name as product, SUM(psd.deducted_quantity) as total_used FROM product_stock_deductions psd JOIN buildings b ON psd.building_id = b.id JOIN products p ON psd.product_id = p.id GROUP BY b.id, p.id",
+    "explanation": "This query provides product usage statistics by building through a three-table join, summing deducted quantities and grouping by both building and product to show usage patterns."
+  },
+  {
+    "question": "List all unregistered user complaints this month",
+    "context": "CREATE TABLE `unregistered_user_complaints` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL, `email` varchar(255) NOT NULL, `created_at` timestamp NULL DEFAULT NULL);",
+    "answer": "SELECT * FROM unregistered_user_complaints WHERE MONTH(created_at) = MONTH(CURDATE()) AND YEAR(created_at) = YEAR(CURDATE())",
+    "explanation": "This query retrieves complaints from unregistered users for the current month by filtering created_at date using MONTH() and YEAR() functions."
+  },
+  {
+    "question": "Show floors with the most units",
+    "context": "CREATE TABLE `units` (`id` bigint UNSIGNED NOT NULL, `floor_id` bigint UNSIGNED DEFAULT NULL); CREATE TABLE `floors` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL);",
+    "answer": "SELECT f.name, COUNT(u.id) as unit_count FROM floors f LEFT JOIN units u ON f.id = u.floor_id GROUP BY f.id ORDER BY unit_count DESC",
+    "explanation": "This query shows floors ranked by unit count using LEFT JOIN to include floors with no units, counting units per floor, and ordering by count in descending order."
+  },
+  {
+    "question": "Calculate total outstanding balances for all violations",
+    "context": "CREATE TABLE `violations` (`id` bigint UNSIGNED NOT NULL, `balance_amount` double(8,2) DEFAULT NULL, `is_paid` tinyint(1) NOT NULL DEFAULT '0');",
+    "answer": "SELECT SUM(balance_amount) as total_outstanding FROM violations WHERE is_paid = 0 AND balance_amount > 0",
+    "explanation": "This query calculates total outstanding violation balances by summing balance_amount for unpaid violations with positive balance amounts."
+  },
+  {
+    "question": "Find contracts with registration fee paid but deposit unpaid",
+    "context": "CREATE TABLE `contracts` (`id` bigint UNSIGNED NOT NULL, `contract_no` varchar(255) NOT NULL, `is_registration_fee_paid` tinyint(1) NOT NULL DEFAULT '0', `is_deposit_paid` tinyint(1) NOT NULL DEFAULT '0');",
+    "answer": "SELECT * FROM contracts WHERE is_registration_fee_paid = 1 AND is_deposit_paid = 0",
+    "explanation": "This query finds contracts where registration fees have been paid but deposits remain unpaid by filtering for the specific combination of payment statuses."
+  },
+  {
+    "question": "List all job invoices with payment links",
+    "context": "CREATE TABLE `job_invoices` (`id` bigint UNSIGNED NOT NULL, `invoice_no` varchar(255) NOT NULL, `payment_url` varchar(255) DEFAULT NULL, `is_payment_url_expired` tinyint(1) NOT NULL DEFAULT '0');",
+    "answer": "SELECT * FROM job_invoices WHERE payment_url IS NOT NULL AND is_payment_url_expired = 0",
+    "explanation": "This query retrieves job invoices that have active payment links by filtering for non-null payment URLs and non-expired status."
+  },
+  {
+    "question": "Get monthly trend of emergency complaints",
+    "context": "CREATE TABLE `complaints` (`id` bigint UNSIGNED NOT NULL, `is_emergency` tinyint(1) NOT NULL DEFAULT '0', `created_at` timestamp NULL DEFAULT NULL);",
+    "answer": "SELECT DATE_FORMAT(created_at, '%Y-%m') as month, COUNT(*) as emergency_count FROM complaints WHERE is_emergency = 1 GROUP BY DATE_FORMAT(created_at, '%Y-%m') ORDER BY month DESC LIMIT 12",
+    "explanation": "This query shows the monthly trend of emergency complaints over the last 12 months by grouping emergency complaints by month using DATE_FORMAT and ordering by month in descending order."
+  },
+  {
+    "question": "Show all verified contracts with their verification dates",
+    "context": "CREATE TABLE `contracts` (`id` bigint UNSIGNED NOT NULL, `contract_no` varchar(255) NOT NULL, `status` int NOT NULL DEFAULT '2', `verified_at` datetime DEFAULT NULL);",
+    "answer": "SELECT contract_no, verified_at FROM contracts WHERE status = 1 AND verified_at IS NOT NULL ORDER BY verified_at DESC",
+    "explanation": "This query retrieves verified contracts by filtering for verified status (1) and non-null verification dates, ordering by verification date to show most recently verified first."
+  },
+  {
+    "question": "Find parking spaces assigned to shops",
+    "context": "CREATE TABLE `unit_parkings` (`id` bigint UNSIGNED NOT NULL, `parking_no` varchar(255) NOT NULL, `type` int NOT NULL COMMENT '5=SHOP');",
+    "answer": "SELECT * FROM unit_parkings WHERE type = 5",
+    "explanation": "This query finds parking spaces assigned to shops by filtering for type = 5, which represents shop parking according to the table comment."
+  },
+  {
+    "question": "Calculate average bill amount by building",
+    "context": "CREATE TABLE `bills` (`id` bigint UNSIGNED NOT NULL, `contract_id` bigint UNSIGNED DEFAULT NULL, `total_payable` decimal(10,2) NOT NULL); CREATE TABLE `contracts` (`id` bigint UNSIGNED NOT NULL, `unit_id` bigint UNSIGNED NOT NULL); CREATE TABLE `units` (`id` bigint UNSIGNED NOT NULL, `building_id` bigint UNSIGNED NOT NULL); CREATE TABLE `buildings` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL);",
+    "answer": "SELECT b.name, AVG(bill.total_payable) as avg_bill FROM bills bill JOIN contracts c ON bill.contract_id = c.id JOIN units u ON c.unit_id = u.id JOIN buildings b ON u.building_id = b.id GROUP BY b.id",
+    "explanation": "This query calculates average bill amounts by building through a four-table join from bills to buildings, using AVG() function and grouping by building to show spending patterns per building."
+  },
+  {
+    "question": "List all access cards that have been blocked",
+    "context": "CREATE TABLE `assigned_access_cards` (`id` bigint UNSIGNED NOT NULL, `card_id` varchar(255) NOT NULL, `is_blocked` tinyint(1) NOT NULL DEFAULT '0', `blocked_by` bigint UNSIGNED DEFAULT NULL);",
+    "answer": "SELECT * FROM assigned_access_cards WHERE is_blocked = 1",
+    "explanation": "This query retrieves all blocked access cards by filtering for is_blocked = 1, showing cards that have been administratively blocked."
+  },
+  {
+    "question": "Get complaint suggestions by type",
+    "context": "CREATE TABLE `complaint_suggestions` (`id` bigint UNSIGNED NOT NULL, `complaint_type_id` bigint UNSIGNED NOT NULL, `description` text NOT NULL); CREATE TABLE `complaint_types` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL);",
+    "answer": "SELECT ct.name, cs.description FROM complaint_suggestions cs JOIN complaint_types ct ON cs.complaint_type_id = ct.id ORDER BY ct.name",
+    "explanation": "This query shows complaint suggestions organized by complaint type through a join between complaint_suggestions and complaint_types, ordered alphabetically by type name."
+  },
+  {
+    "question": "Show all properties with damage reports",
+    "context": "CREATE TABLE `property_damage_reports` (`id` bigint UNSIGNED NOT NULL, `is_damaged` tinyint(1) NOT NULL DEFAULT '0', `amount` decimal(10,2) DEFAULT NULL, `property_damageable_type` varchar(255) NOT NULL);",
+    "answer": "SELECT * FROM property_damage_reports WHERE is_damaged = 1 AND amount > 0",
+    "explanation": "This query finds properties with confirmed damage reports by filtering for is_damaged = 1 and positive damage amounts, indicating actual financial impact."
+  },
+  {
+    "question": "Find users with expired vehicle registrations",
+    "context": "CREATE TABLE `vehicles` (`id` bigint UNSIGNED NOT NULL, `user_id` bigint UNSIGNED NOT NULL, `registration_expiry` date DEFAULT NULL); CREATE TABLE `users` (`id` bigint UNSIGNED NOT NULL, `email` varchar(255) NOT NULL);",
+    "answer": "SELECT DISTINCT u.* FROM users u JOIN vehicles v ON u.id = v.user_id WHERE v.registration_expiry < CURDATE()",
+    "explanation": "This query finds users who own vehicles with expired registrations by joining users with vehicles and filtering for registration expiry dates before today, using DISTINCT to avoid duplicate users."
+  },
+  {
+    "question": "Calculate total service charges collected per quarter",
+    "context": "CREATE TABLE `service_charges` (`id` bigint UNSIGNED NOT NULL, `period` int NOT NULL, `year` varchar(255) NOT NULL, `is_paid` tinyint(1) NOT NULL DEFAULT '0');",
+    "answer": "SELECT year, period, COUNT(*) as paid_count FROM service_charges WHERE is_paid = 1 GROUP BY year, period ORDER BY year DESC, period",
+    "explanation": "This query calculates service charge collection statistics by quarter, counting paid charges grouped by year and period, ordered to show recent quarters first."
+  },
+  {
+    "question": "List all access card requests with multiple card types",
+    "context": "CREATE TABLE `access_card_request_mappings` (`id` bigint UNSIGNED NOT NULL, `access_card_request_id` bigint UNSIGNED NOT NULL, `access_card_type_id` bigint UNSIGNED NOT NULL);",
+    "answer": "SELECT access_card_request_id, COUNT(DISTINCT access_card_type_id) as card_types FROM access_card_request_mappings GROUP BY access_card_request_id HAVING card_types > 1",
+    "explanation": "This query finds access card requests for multiple card types by counting distinct card types per request and using HAVING to filter for requests with more than one card type."
+  },
+  {
+    "question": "Show buildings in cluster type 'Residential'",
+    "context": "CREATE TABLE `buildings` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL, `cluster_type_id` bigint UNSIGNED DEFAULT NULL); CREATE TABLE `cluster_types` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL);",
+    "answer": "SELECT b.* FROM buildings b JOIN cluster_types ct ON b.cluster_type_id = ct.id WHERE ct.name LIKE '%Residential%'",
+    "explanation": "This query finds residential buildings by joining buildings with cluster_types and filtering for cluster types containing 'Residential' in the name."
+  },
+  {
+    "question": "Get payment distribution by payment type",
+    "context": "CREATE TABLE `payments` (`id` bigint UNSIGNED NOT NULL, `payment_type` int NOT NULL COMMENT '1=CARD, 2=CASH, 3=CHEQUE', `amount` decimal(10,2) NOT NULL);",
+    "answer": "SELECT CASE payment_type WHEN 1 THEN 'CARD' WHEN 2 THEN 'CASH' WHEN 3 THEN 'CHEQUE' ELSE 'OTHER' END as type, COUNT(*) as count, SUM(amount) as total FROM payments GROUP BY payment_type",
+    "explanation": "This query analyzes payment distribution by type using a CASE statement to convert payment type codes to readable labels and aggregating both count and total amounts."
+  },
+  {
+    "question": "Find all contracts ending in the next 90 days",
+    "context": "CREATE TABLE `contracts` (`id` bigint UNSIGNED NOT NULL, `contract_no` varchar(255) NOT NULL, `end_date` date DEFAULT NULL, `is_active` tinyint(1) NOT NULL DEFAULT '0');",
+    "answer": "SELECT * FROM contracts WHERE is_active = 1 AND end_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 90 DAY)",
+    "explanation": "This query finds active contracts ending in the next 90 days by filtering for active status and using DATE_ADD to create a 90-day future date range."
+  },
+  {
+    "question": "List tenants with verified status",
+    "context": "CREATE TABLE `tenants` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL, `is_verified` tinyint(1) NOT NULL DEFAULT '0');",
+    "answer": "SELECT * FROM tenants WHERE is_verified = 1",
+    "explanation": "This query retrieves all verified tenants by filtering for is_verified = 1, showing tenants who have completed the verification process."
+  },
+  {
+    "question": "Calculate total declared load charges for all bills",
+    "context": "CREATE TABLE `bills` (`id` bigint UNSIGNED NOT NULL, `declared_load_charges` decimal(10,2) NOT NULL DEFAULT '0.00', `bill_of` date DEFAULT NULL);",
+    "answer": "SELECT DATE_FORMAT(bill_of, '%Y-%m') as month, SUM(declared_load_charges) as total_load_charges FROM bills GROUP BY DATE_FORMAT(bill_of, '%Y-%m')",
+    "explanation": "This query calculates monthly totals of declared load charges by grouping bills by month using DATE_FORMAT and summing the declared load charge amounts."
+  },
+  {
+    "question": "Show all active guest registrations",
+    "context": "CREATE TABLE `guests` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL, `status` int NOT NULL DEFAULT '1' COMMENT '2=Active', `check_in` date NOT NULL, `check_out` date NOT NULL);",
+    "answer": "SELECT * FROM guests WHERE status = 2 AND CURDATE() BETWEEN check_in AND check_out",
+    "explanation": "This query finds currently active guest registrations by filtering for active status (2) and ensuring the current date falls between check-in and check-out dates."
+  },
+  {
+    "question": "Find complaints with rescheduled appointments",
+    "context": "CREATE TABLE `complaints` (`id` bigint UNSIGNED NOT NULL, `reschedule_date` date DEFAULT NULL, `reschedule_reason` varchar(255) DEFAULT NULL);",
+    "answer": "SELECT * FROM complaints WHERE reschedule_date IS NOT NULL",
+    "explanation": "This query finds complaints that have been rescheduled by filtering for non-null reschedule_date values, indicating an appointment has been moved."
+  },
+  {
+    "question": "Get stock deduction history for a specific product",
+    "context": "CREATE TABLE `product_stock_deductions` (`id` bigint UNSIGNED NOT NULL, `product_id` bigint UNSIGNED NOT NULL, `deducted_quantity` decimal(8,3) NOT NULL, `created_at` timestamp NULL DEFAULT NULL); CREATE TABLE `products` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL);",
+    "answer": "SELECT psd.*, p.name FROM product_stock_deductions psd JOIN products p ON psd.product_id = p.id WHERE p.name = 'LED Bulb 15W' ORDER BY psd.created_at DESC",
+    "explanation": "This query retrieves stock deduction history for a specific product by joining deductions with products table, filtering by product name, and ordering by creation date to show most recent first."
+  },
+  {
+    "question": "List all violations with commitment letters received",
+    "context": "CREATE TABLE `violations` (`id` bigint UNSIGNED NOT NULL, `violation_no` varchar(255) NOT NULL, `status` int NOT NULL DEFAULT '1' COMMENT '3=COMMITMENT_LETTER_RECEIVED');",
+    "answer": "SELECT * FROM violations WHERE status = 3",
+    "explanation": "This query finds violations where commitment letters have been received by filtering for status = 3, which indicates the commitment letter has been submitted."
+  },
+  {
+    "question": "Show units with both door and parking access cards",
+    "context": "CREATE TABLE `assigned_access_cards` (`id` bigint UNSIGNED NOT NULL, `contract_id` bigint UNSIGNED DEFAULT NULL, `access_card_type_id` bigint UNSIGNED DEFAULT NULL); CREATE TABLE `contracts` (`id` bigint UNSIGNED NOT NULL, `unit_id` bigint UNSIGNED NOT NULL); CREATE TABLE `access_card_types` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL);",
+    "answer": "SELECT c.unit_id, COUNT(DISTINCT act.name) as card_types FROM assigned_access_cards aac JOIN contracts c ON aac.contract_id = c.id JOIN access_card_types act ON aac.access_card_type_id = act.id WHERE act.name IN ('Door Card', 'Parking Card') GROUP BY c.unit_id HAVING card_types = 2",
+    "explanation": "This query finds units that have both door and parking access cards by counting distinct card types per unit and using HAVING to filter for units with exactly 2 card types."
+  },
+  {
+    "question": "Calculate total quotation amounts by status",
+    "context": "CREATE TABLE `job_quotation` (`id` bigint UNSIGNED NOT NULL, `amount` decimal(10,2) NOT NULL, `status` int NOT NULL DEFAULT '1');",
+    "answer": "SELECT status, SUM(amount) as total_amount FROM job_quotation GROUP BY status",
+    "explanation": "This query calculates total quotation amounts for each status by grouping quotations by status and summing the amounts to show financial distribution across different quotation stages."
+  },
+  {
+    "question": "Find all female tenants",
+    "context": "CREATE TABLE `tenants` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL, `user_id` bigint UNSIGNED NOT NULL); CREATE TABLE `users` (`id` bigint UNSIGNED NOT NULL, `gender` int DEFAULT NULL COMMENT '1=Female');",
+    "answer": "SELECT t.* FROM tenants t JOIN users u ON t.user_id = u.id WHERE u.gender = 1",
+    "explanation": "This query finds female tenants by joining tenants with users table and filtering for gender = 1, which represents female according to the table comment."
+  },
+  {
+    "question": "List products marked as favorites",
+    "context": "CREATE TABLE `kingly_products` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL, `is_favourite` tinyint(1) NOT NULL DEFAULT '0');",
+    "answer": "SELECT * FROM kingly_products WHERE is_favourite = 1",
+    "explanation": "This query retrieves products marked as favorites by filtering for is_favourite = 1, showing products that have been flagged as preferred items."
+  },
+  {
+    "question": "Get payment receipts uploaded this month",
+    "context": "CREATE TABLE `payment_receipts` (`id` bigint UNSIGNED NOT NULL, `file_name` varchar(255) NOT NULL, `created_at` timestamp NULL DEFAULT NULL);",
+    "answer": "SELECT * FROM payment_receipts WHERE MONTH(created_at) = MONTH(CURDATE()) AND YEAR(created_at) = YEAR(CURDATE())",
+    "explanation": "This query finds payment receipts uploaded in the current month by filtering created_at date using MONTH() and YEAR() functions to match the current month and year."
+  },
+  {
+    "question": "Show all units with MOLAK property IDs",
+    "context": "CREATE TABLE `units` (`id` bigint UNSIGNED NOT NULL, `unit_no` varchar(255) NOT NULL, `molak_property_id` varchar(255) DEFAULT NULL);",
+    "answer": "SELECT * FROM units WHERE molak_property_id IS NOT NULL",
+    "explanation": "This query finds units that have MOLAK property IDs assigned by filtering for non-null molak_property_id values, indicating integration with the MOLAK system."
+  },
+  {
+    "question": "Find incidents that resulted in unit blocking",
+    "context": "CREATE TABLE `unit_block_lists` (`id` bigint UNSIGNED NOT NULL, `blockable_id` int DEFAULT NULL, `blockable_type` varchar(255) DEFAULT NULL, `is_blocked` tinyint(1) NOT NULL DEFAULT '0'); CREATE TABLE `incident_reports` (`id` bigint UNSIGNED NOT NULL, `incident_no` varchar(255) NOT NULL);",
+    "answer": "SELECT ir.* FROM incident_reports ir JOIN unit_block_lists ubl ON ubl.blockable_id = ir.id WHERE ubl.blockable_type LIKE '%IncidentReport%' AND ubl.is_blocked = 1",
+    "explanation": "This query finds incident reports that resulted in unit blocking by joining with unit_block_lists using polymorphic relationship (blockable_id and blockable_type) and filtering for blocked status."
+  },
+  {
+    "question": "Calculate average response time for feedback",
+    "context": "CREATE TABLE `feedback` (`id` bigint UNSIGNED NOT NULL, `created_at` timestamp NULL DEFAULT NULL); CREATE TABLE `feedback_replies` (`id` bigint UNSIGNED NOT NULL, `feedback_id` bigint UNSIGNED NOT NULL, `created_at` timestamp NULL DEFAULT NULL);",
+    "answer": "SELECT AVG(TIMESTAMPDIFF(HOUR, f.created_at, fr.created_at)) as avg_response_hours FROM feedback f JOIN feedback_replies fr ON f.id = fr.feedback_id",
+    "explanation": "This query calculates average feedback response time in hours using TIMESTAMPDIFF to find the time difference between feedback submission and reply creation."
+  },
+  {
+    "question": "List all handicapped parking spaces",
+    "context": "CREATE TABLE `unit_parkings` (`id` bigint UNSIGNED NOT NULL, `parking_no` varchar(255) NOT NULL, `type` int NOT NULL COMMENT '4=HANDICAPPED');",
+    "answer": "SELECT * FROM unit_parkings WHERE type = 4",
+    "explanation": "This query retrieves handicapped parking spaces by filtering for type = 4, which represents handicapped parking according to the table comment."
+  },
+  {
+    "question": "Show contracts with both owner and tenant occupancy",
+    "context": "CREATE TABLE `contracts` (`id` bigint UNSIGNED NOT NULL, `contract_no` varchar(255) NOT NULL, `contractable_type` varchar(255) DEFAULT NULL);",
+    "answer": "SELECT contract_no, contractable_type FROM contracts WHERE contractable_type IN ('App\\Models\\Users\\Tenant', 'App\\Models\\Users\\Owner')",
+    "explanation": "This query shows contracts for both tenants and owners by filtering contractable_type for the specific Laravel model class names representing tenant and owner contracts."
+  },
+  {
+    "question": "Get material usage by job order",
+    "context": "CREATE TABLE `building_complaint_material_items` (`id` bigint UNSIGNED NOT NULL, `quantity` decimal(10,2) NOT NULL, `total_price` decimal(10,2) DEFAULT 0.00); CREATE TABLE `building_complaint_materials` (`id` bigint UNSIGNED NOT NULL, `job_alloc_id` bigint UNSIGNED NOT NULL); CREATE TABLE `job_allocs` (`id` bigint UNSIGNED NOT NULL, `job_order_no` varchar(255) NOT NULL);",
+    "answer": "SELECT ja.job_order_no, SUM(bcmi.total_price) as material_cost FROM building_complaint_material_items bcmi JOIN building_complaint_materials bcm ON bcmi.building_complaint_material_id = bcm.id JOIN job_allocs ja ON bcm.job_alloc_id = ja.id GROUP BY ja.id",
+    "explanation": "This query calculates material costs per job order through a three-table join, summing material item costs and grouping by job allocation to show total material usage per job."
+  },
+  {
+    "question": "Find all cash payments made today",
+    "context": "CREATE TABLE `payments` (`id` bigint UNSIGNED NOT NULL, `payment_type` int NOT NULL COMMENT '2=CASH', `amount` decimal(10,2) NOT NULL, `created_at` timestamp NULL DEFAULT NULL);",
+    "answer": "SELECT * FROM payments WHERE payment_type = 2 AND DATE(created_at) = CURDATE()",
+    "explanation": "This query finds cash payments made today by filtering for payment_type = 2 (cash) and using DATE() function to compare only the date portion of created_at with today's date."
+  },
+  {
+    "question": "List vehicle types with violation counts",
+    "context": "CREATE TABLE `vehicles` (`id` bigint UNSIGNED NOT NULL, `vehicle_type` varchar(50) DEFAULT NULL); CREATE TABLE `violations` (`id` bigint UNSIGNED NOT NULL, `violationable_id` int DEFAULT NULL, `violationable_type` varchar(255) DEFAULT NULL);",
+    "answer": "SELECT v.vehicle_type, COUNT(viol.id) as violation_count FROM vehicles v LEFT JOIN violations viol ON viol.violationable_id = v.id AND viol.violationable_type LIKE '%Vehicle%' GROUP BY v.vehicle_type",
+    "explanation": "This query shows violation counts by vehicle type using LEFT JOIN with polymorphic relationship to count violations per vehicle type, including vehicle types with zero violations."
+  },
+  {
+    "question": "Show all moving requests with furniture",
+    "context": "CREATE TABLE `moving_requests` (`id` bigint UNSIGNED NOT NULL, `ref_no` int NOT NULL, `have_furniture` tinyint(1) NOT NULL DEFAULT '0', `moving_date` date NOT NULL);",
+    "answer": "SELECT * FROM moving_requests WHERE have_furniture = 1 ORDER BY moving_date",
+    "explanation": "This query finds moving requests that involve furniture by filtering for have_furniture = 1 and ordering by moving date to show chronological sequence."
+  },
+  {
+    "question": "Get bill payment summary by month",
+    "context": "CREATE TABLE `bills` (`id` bigint UNSIGNED NOT NULL, `is_paid` tinyint(1) NOT NULL DEFAULT '0', `paid_on` date DEFAULT NULL, `total_payable` decimal(10,2) NOT NULL);",
+    "answer": "SELECT DATE_FORMAT(paid_on, '%Y-%m') as month, COUNT(*) as bills_paid, SUM(total_payable) as total_collected FROM bills WHERE is_paid = 1 GROUP BY DATE_FORMAT(paid_on, '%Y-%m')",
+    "explanation": "This query provides monthly bill payment summary by grouping paid bills by month using DATE_FORMAT, counting paid bills, and summing collected amounts."
+  },
+  {
+    "question": "Find units with expired service charges",
+    "context": "CREATE TABLE `service_charges` (`id` bigint UNSIGNED NOT NULL, `unit_id` bigint UNSIGNED NOT NULL, `year` varchar(255) NOT NULL, `period` int NOT NULL, `is_paid` tinyint(1) NOT NULL DEFAULT '0');",
+    "answer": "SELECT DISTINCT unit_id FROM service_charges WHERE CONCAT(year, '-', LPAD(period * 3, 2, '0')) < DATE_FORMAT(CURDATE(), '%Y-%m') AND is_paid = 0",
+    "explanation": "This query finds units with expired unpaid service charges by constructing quarter end dates using CONCAT and LPAD, comparing with current date to identify overdue charges."
+  },
+  {
+    "question": "List all engineers with their current job count",
+    "context": "CREATE TABLE `cluster_engineers` (`id` bigint UNSIGNED NOT NULL, `staff_id` bigint UNSIGNED NOT NULL); CREATE TABLE `job_allocs` (`id` bigint UNSIGNED NOT NULL, `cluster_engineer_id` bigint UNSIGNED DEFAULT NULL, `status` int NOT NULL); CREATE TABLE `staff` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL);",
+    "answer": "SELECT s.name, COUNT(ja.id) as current_jobs FROM staff s JOIN cluster_engineers ce ON s.id = ce.staff_id LEFT JOIN job_allocs ja ON ce.id = ja.cluster_engineer_id AND ja.status IN (2, 3) GROUP BY s.id",
+    "explanation": "This query shows engineers with their current active job counts by joining staff with engineers and using LEFT JOIN for job allocations, filtering for active job statuses (2, 3)."
+  },
+  {
+    "question": "Show access points on ground floor",
+    "context": "CREATE TABLE `genetec_access_points` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL, `floor_id` bigint UNSIGNED DEFAULT NULL); CREATE TABLE `floors` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL);",
+    "answer": "SELECT gap.* FROM genetec_access_points gap JOIN floors f ON gap.floor_id = f.id WHERE f.name LIKE '%Ground%'",
+    "explanation": "This query finds Genetec access points on the ground floor by joining with floors table and using LIKE to match floor names containing 'Ground'."
+  },
+  {
+    "question": "Calculate total refunded amount this year",
+    "context": "CREATE TABLE `payment_refunds` (`id` bigint UNSIGNED NOT NULL, `amount_refunded` decimal(10,2) NOT NULL, `refunded_on` timestamp NOT NULL);",
+    "answer": "SELECT SUM(amount_refunded) as total_refunded FROM payment_refunds WHERE YEAR(refunded_on) = YEAR(CURDATE())",
+    "explanation": "This query calculates total refunded amounts for the current year by summing amount_refunded and filtering by current year using YEAR() function."
+  },
+  {
+    "question": "Find contracts with sold status",
+    "context": "CREATE TABLE `contracts` (`id` bigint UNSIGNED NOT NULL, `contract_no` varchar(255) NOT NULL, `status` int NOT NULL DEFAULT '2' COMMENT '4=SOLD');",
+    "answer": "SELECT * FROM contracts WHERE status = 4",
+    "explanation": "This query finds contracts with sold status by filtering for status = 4, which represents sold contracts according to the table comment."
+  },
+  {
+    "question": "List all expired parking subscriptions",
+    "context": "CREATE TABLE `parking_subscriptions` (`id` bigint UNSIGNED NOT NULL, `subscription_expiry` date NOT NULL, `is_expired` tinyint(1) NOT NULL DEFAULT '0');",
+    "answer": "SELECT * FROM parking_subscriptions WHERE is_expired = 1 OR subscription_expiry < CURDATE()",
+    "explanation": "This query finds expired parking subscriptions by checking both the is_expired flag and comparing subscription_expiry with current date to catch all expired subscriptions."
+  },
+  {
+    "question": "Get deposit refund statistics",
+    "context": "CREATE TABLE `deposits` (`id` bigint UNSIGNED NOT NULL, `amount` double(8,2) NOT NULL, `status` int NOT NULL DEFAULT '1', `refund_amount` double(10,2) NOT NULL DEFAULT '0.00');",
+    "answer": "SELECT status, COUNT(*) as count, SUM(amount) as total_deposits, SUM(refund_amount) as total_refunded FROM deposits GROUP BY status",
+    "explanation": "This query provides deposit refund statistics by status, showing counts, total deposit amounts, and total refunded amounts grouped by deposit status."
+  },
+  {
+    "question": "Show all studio apartments",
+    "context": "CREATE TABLE `units` (`id` bigint UNSIGNED NOT NULL, `unit_no` varchar(255) NOT NULL, `unit_type_id` bigint UNSIGNED DEFAULT NULL); CREATE TABLE `unit_types` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL);",
+    "answer": "SELECT u.* FROM units u JOIN unit_types ut ON u.unit_type_id = ut.id WHERE ut.name = 'Studio'",
+    "explanation": "This query finds studio apartments by joining units with unit_types and filtering for 'Studio' unit type name."
+  },
+  {
+    "question": "Find complaints verified as false",
+    "context": "CREATE TABLE `complaints` (`id` bigint UNSIGNED NOT NULL, `verification_status` int DEFAULT NULL COMMENT '3=FALSE_COMPLAINT', `verified_on` datetime DEFAULT NULL);",
+    "answer": "SELECT * FROM complaints WHERE verification_status = 3",
+    "explanation": "This query finds complaints that have been verified as false by filtering for verification_status = 3, which indicates false complaints according to the table comment."
+  },
+  {
+    "question": "Calculate average parking subscription duration",
+    "context": "CREATE TABLE `parking_subscriptions` (`id` bigint UNSIGNED NOT NULL, `duration` int DEFAULT NULL COMMENT 'Duration in months');",
+    "answer": "SELECT AVG(duration) as avg_duration_months FROM parking_subscriptions WHERE duration IS NOT NULL",
+    "explanation": "This query calculates the average parking subscription duration in months by using AVG() function on the duration field, filtering out null values."
+  },
+  {
+    "question": "List all active notices",
+    "context": "CREATE TABLE `notices` (`id` bigint UNSIGNED NOT NULL, `mark_as_read` tinyint(1) NOT NULL DEFAULT '0'); CREATE TABLE `notice_entities` (`id` bigint UNSIGNED NOT NULL, `title` varchar(255) NOT NULL);",
+    "answer": "SELECT ne.title, COUNT(n.id) as unread_count FROM notices n JOIN notice_entities ne ON n.notice_entity_id = ne.id WHERE n.mark_as_read = 0 GROUP BY ne.id",
+    "explanation": "This query shows active notices by counting unread notices per notice entity, joining notices with notice_entities and filtering for unread status (mark_as_read = 0)."
+  },
+  {
+    "question": "Show buildings with electricity meter numbers",
+    "context": "CREATE TABLE `contracts` (`id` bigint UNSIGNED NOT NULL, `meter_no` varchar(255) DEFAULT NULL, `unit_id` bigint UNSIGNED NOT NULL); CREATE TABLE `units` (`id` bigint UNSIGNED NOT NULL, `building_id` bigint UNSIGNED NOT NULL); CREATE TABLE `buildings` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL);",
+    "answer": "SELECT DISTINCT b.name, c.meter_no FROM contracts c JOIN units u ON c.unit_id = u.id JOIN buildings b ON u.building_id = b.id WHERE c.meter_no IS NOT NULL",
+    "explanation": "This query shows buildings with electricity meter numbers by joining contracts, units, and buildings tables, filtering for non-null meter numbers, and using DISTINCT to avoid duplicates."
+  },
+  {
+    "question": "Get violation types with auto-block thresholds",
+    "context": "CREATE TABLE `violation_types` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL, `auto_block_threshold` int DEFAULT NULL);",
+    "answer": "SELECT name, auto_block_threshold FROM violation_types WHERE auto_block_threshold IS NOT NULL ORDER BY auto_block_threshold",
+    "explanation": "This query retrieves violation types that have auto-block thresholds configured by filtering for non-null threshold values and ordering by threshold value."
+  },
+  {
+    "question": "Find all properties with purchase dates",
+    "context": "CREATE TABLE `contracts` (`id` bigint UNSIGNED NOT NULL, `contract_no` varchar(255) NOT NULL, `date_of_purchase` date DEFAULT NULL, `contractable_type` varchar(255) DEFAULT NULL);",
+    "answer": "SELECT * FROM contracts WHERE date_of_purchase IS NOT NULL AND contractable_type LIKE '%Owner%'",
+    "explanation": "This query finds owner contracts that have purchase dates recorded by filtering for non-null purchase dates and owner contract types."
+  },
+  {
+    "question": "List access cards with Genetec integration",
+    "context": "CREATE TABLE `assigned_access_cards` (`id` bigint UNSIGNED NOT NULL, `genetec_card_holder` char(36) DEFAULT NULL, `card_id` varchar(255) NOT NULL);",
+    "answer": "SELECT * FROM assigned_access_cards WHERE genetec_card_holder IS NOT NULL",
+    "explanation": "This query finds access cards integrated with Genetec system by filtering for non-null genetec_card_holder values, indicating successful system integration."
+  },
+  {
+    "question": "Calculate monthly violation revenue",
+    "context": "CREATE TABLE `violation_payments` (`id` bigint UNSIGNED NOT NULL, `amount` double NOT NULL, `payment_date` datetime DEFAULT CURRENT_TIMESTAMP);",
+    "answer": "SELECT DATE_FORMAT(payment_date, '%Y-%m') as month, SUM(amount) as revenue FROM violation_payments WHERE payment_status = 'COMPLETED' GROUP BY DATE_FORMAT(payment_date, '%Y-%m')",
+    "explanation": "This query calculates monthly violation payment revenue by grouping completed payments by month using DATE_FORMAT and summing payment amounts."
+  },
+  {
+    "question": "Show all units on the first floor",
+    "context": "CREATE TABLE `units` (`id` bigint UNSIGNED NOT NULL, `unit_no` varchar(255) NOT NULL, `floor_id` bigint UNSIGNED DEFAULT NULL); CREATE TABLE `floors` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL);",
+    "answer": "SELECT u.* FROM units u JOIN floors f ON u.floor_id = f.id WHERE f.name LIKE '%1st%' OR f.name LIKE '%First%'",
+    "explanation": "This query finds units on the first floor by joining with floors table and using LIKE patterns to match various first floor naming conventions ('1st' or 'First')."
+  },
+  {
+    "question": "Find contracts with occupant count greater than 4",
+    "context": "CREATE TABLE `contracts` (`id` bigint UNSIGNED NOT NULL, `contract_no` varchar(255) NOT NULL, `occupant_count` int DEFAULT NULL);",
+    "answer": "SELECT * FROM contracts WHERE occupant_count > 4",
+    "explanation": "This query finds contracts with more than 4 occupants by filtering the occupant_count field for values greater than 4, useful for identifying large households."
+  },
+  {
+    "question": "Get complaint distribution by area type",
+    "context": "CREATE TABLE `complaints` (`id` bigint UNSIGNED NOT NULL, `complaint_area` int DEFAULT NULL COMMENT '1=Building, 2=Apartment');",
+    "answer": "SELECT CASE complaint_area WHEN 1 THEN 'Building' WHEN 2 THEN 'Apartment' ELSE 'Unknown' END as area, COUNT(*) as count FROM complaints GROUP BY complaint_area",
+    "explanation": "This query analyzes complaint distribution by area type using a CASE statement to convert numeric area codes to readable labels and counting complaints per area type."
+  },
+  {
+    "question": "List all VIP users",
+    "context": "CREATE TABLE `users` (`id` bigint UNSIGNED NOT NULL, `email` varchar(255) NOT NULL, `user_type_id` bigint UNSIGNED DEFAULT NULL); CREATE TABLE `user_types` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL);",
+    "answer": "SELECT u.* FROM users u JOIN user_types ut ON u.user_type_id = ut.id WHERE ut.name = 'VIP'",
+    "explanation": "This query finds VIP users by joining users with user_types and filtering for 'VIP' user type name."
+  },
+  {
+    "question": "Show products in low stock status",
+    "context": "CREATE TABLE `products` (`id` bigint UNSIGNED NOT NULL, `name` varchar(255) NOT NULL, `status` int NOT NULL DEFAULT '3' COMMENT '2=LOW_STOCK');",
+    "answer": "SELECT * FROM products WHERE status = 2",
+    "explanation": "This query retrieves products in low stock status by filtering for status = 2, which represents low stock according to the table comment."
+  },
+  {
+    "question": "Find all online payment transactions",
+    "context": "CREATE TABLE `payments` (`id` bigint UNSIGNED NOT NULL, `tracking_id` varchar(255) DEFAULT NULL, `payment_type` int NOT NULL COMMENT '6=PAYMENT_LINK', `amount` decimal(10,2) NOT NULL);",
+    "answer": "SELECT * FROM payments WHERE payment_type = 6 AND tracking_id IS NOT NULL",
+    "explanation": "This query finds online payment transactions by filtering for payment_type = 6 (payment link) and non-null tracking IDs, indicating successful online transactions."
+  },
+  {
+    "question": "Calculate total meter reading consumption",
+    "context": "CREATE TABLE `bills` (`id` bigint UNSIGNED NOT NULL, `meter_read_kwh` decimal(10,2) NOT NULL DEFAULT '0.00', `bill_of` date DEFAULT NULL);",
+    "answer": "SELECT DATE_FORMAT(bill_of, '%Y-%m') as month, SUM(meter_read_kwh) as total_kwh FROM bills GROUP BY DATE_FORMAT(bill_of, '%Y-%m')",
+    "explanation": "This query calculates monthly total meter reading consumption by grouping bills by month and summing kWh readings to show energy usage trends."
+  },
+  {
+    "question": "List all properties with incorrect contract info",
+    "context": "CREATE TABLE `contracts` (`id` bigint UNSIGNED NOT NULL, `contract_no` varchar(255) NOT NULL, `status` int NOT NULL DEFAULT '2' COMMENT '3=INCORRECT_INFO');",
+    "answer": "SELECT * FROM contracts WHERE status = 3",
+    "explanation": "This query finds contracts with incorrect information by filtering for status = 3, which indicates contracts requiring information correction."
+  },
+  {
+    "question": "Show access card audit logs for today",
+    "context": "CREATE TABLE `assigned_access_card_logs` (`id` bigint UNSIGNED NOT NULL, `description` text, `type` int NOT NULL, `created_at` timestamp NULL DEFAULT NULL);",
+    "answer": "SELECT * FROM assigned_access_card_logs WHERE DATE(created_at) = CURDATE() ORDER BY created_at DESC",
+    "explanation": "This query retrieves access card audit logs for today by filtering created_at date using DATE() function and ordering by creation time to show most recent activities first."
+  },
+  {
+    "question": "Find units with multiple contracts",
+    "context": "CREATE TABLE `contracts` (`id` bigint UNSIGNED NOT NULL, `unit_id` bigint UNSIGNED NOT NULL, `is_active` tinyint(1) NOT NULL DEFAULT '0');",
+    "answer": "SELECT unit_id, COUNT(*) as contract_count FROM contracts WHERE is_active = 1 GROUP BY unit_id HAVING contract_count > 1",
+    "explanation": "This query identifies units with multiple active contracts by counting active contracts per unit and using HAVING to filter for units with more than one contract."
+  },
+  {
+    "question": "Get frequent visitor vehicles",
+    "context": "CREATE TABLE `vehicles` (`id` bigint UNSIGNED NOT NULL, `number_plate` varchar(255) NOT NULL, `is_frequent` tinyint(1) NOT NULL DEFAULT '0');",
+    "answer": "SELECT * FROM vehicles WHERE is_frequent = 1",
+    "explanation": "This query retrieves vehicles marked as frequent visitors by filtering for is_frequent = 1, identifying regularly visiting vehicles."
+  },
+  {
+    "question": "Calculate average violation fine by grade",
+    "context": "CREATE TABLE `violations` (`id` bigint UNSIGNED NOT NULL, `amount` double DEFAULT NULL, `violation_description_id` bigint UNSIGNED DEFAULT NULL); CREATE TABLE `violation_descriptions` (`id` bigint UNSIGNED NOT NULL, `violation_type_id` bigint UNSIGNED NOT NULL); CREATE TABLE `violation_types` (`id` bigint UNSIGNED NOT NULL, `grade` int DEFAULT NULL);",
+    "answer": "SELECT vt.grade, AVG(v.amount) as avg_fine FROM violations v JOIN violation_descriptions vd ON v.violation_description_id = vd.id JOIN violation_types vt ON vd.violation_type_id = vt.id GROUP BY vt.grade",
+    "explanation": "This query calculates average violation fines by grade through a three-table join from violations to violation types, using AVG() function grouped by violation grade."
+  },
+  {
+    "question": "List all complaints scheduled for afternoon slots",
+    "context": "CREATE TABLE `complaints` (`id` bigint UNSIGNED NOT NULL, `slot_time` int DEFAULT NULL COMMENT '2=Afternoon');",
+    "answer": "SELECT * FROM complaints WHERE slot_time = 2",
+    "explanation": "This query finds complaints scheduled for afternoon time slots by filtering for slot_time = 2, which represents afternoon according to the table comment."
+  }
+]
 
